@@ -16,35 +16,35 @@ Instead, the simulator uses deliberately fake credentials, synthetic traffic, an
 
 # 📖 Table of Contents
 
-* [Project Motivation](#-project-motivation)
-* [Learning Objectives](#-learning-objectives)
-* [What Is an Evil Twin](#-what-is-an-evil-twin)
-* [What The Simulator Demonstrates](#-what-the-simulator-demonstrates)
-* [Safety Model](#-safety-model)
-* [Project Architecture](#-project-architecture)
-* [Technology Stack](#-technology-stack)
-* [Repository Structure](#-repository-structure)
-* [Network Architecture](#-network-architecture)
-* [Core Components](#-core-components)
-* [Application Workflow](#-application-workflow)
-* [Dashboard](#-dashboard)
-* [Traffic Laboratory](#-traffic-laboratory)
-* [Captive Portal](#-captive-portal)
-* [Packet Analysis](#-packet-analysis)
-* [Detection Module](#-detection-module)
-* [Implementation Roadmap](#-implementation-roadmap)
-* [Phase 1](#phase-1---project-foundation)
-* [Phase 2](#phase-2---laboratory-network)
-* [Phase 3](#phase-3---client-observation)
-* [Phase 4](#phase-4---captive-portal)
-* [Phase 5](#phase-5---traffic-analysis)
-* [Phase 6](#phase-6---detection)
-* [Phase 7](#phase-7---educational-mode)
-* [Testing](#-testing)
-* [Security Requirements](#-security-requirements)
-* [Learning Topics](#-learning-topics)
-* [Future Improvements](#-future-improvements)
-* [Conclusion](#-conclusion)
+- [Project Motivation](#-project-motivation)
+- [Learning Objectives](#-learning-objectives)
+- [What Is an Evil Twin](#-what-is-an-evil-twin)
+- [What The Simulator Demonstrates](#-what-the-simulator-demonstrates)
+- [Safety Model](#-safety-model)
+- [Project Architecture](#-project-architecture)
+- [Technology Stack](#-technology-stack)
+- [Repository Structure](#-repository-structure)
+- [Network Architecture](#-network-architecture)
+- [Core Components](#-core-components)
+- [Application Workflow](#-application-workflow)
+- [Dashboard](#-dashboard)
+- [Traffic Laboratory](#-traffic-laboratory)
+- [Captive Portal](#-captive-portal)
+- [Packet Analysis](#-packet-analysis)
+- [Detection Module](#-detection-module)
+- [Implementation Roadmap](#-implementation-roadmap)
+- [Phase 1](#phase-1---project-foundation)
+- [Phase 2](#phase-2---laboratory-network)
+- [Phase 3](#phase-3---client-observation)
+- [Phase 4](#phase-4---captive-portal)
+- [Phase 5](#phase-5---traffic-analysis)
+- [Phase 6](#phase-6---detection)
+- [Phase 7](#phase-7---educational-mode)
+- [Testing](#-testing)
+- [Security Requirements](#-security-requirements)
+- [Learning Topics](#-learning-topics)
+- [Future Improvements](#-future-improvements)
+- [Conclusion](#-conclusion)
 
 ---
 
@@ -96,60 +96,60 @@ After completing this project, the student should understand:
 
 ### Wireless
 
-* SSID
-* BSSID
-* Access Points
-* Wireless clients
-* 802.11 management frames
-* Beacon frames
-* Probe requests
-* Probe responses
-* Authentication
-* Association
-* Deauthentication concept
-* WPA2/WPA3 concepts
-* Open networks
-* Rogue access points
-* Evil Twin attacks
+- SSID
+- BSSID
+- Access Points
+- Wireless clients
+- 802.11 management frames
+- Beacon frames
+- Probe requests
+- Probe responses
+- Authentication
+- Association
+- Deauthentication concept
+- WPA2/WPA3 concepts
+- Open networks
+- Rogue access points
+- Evil Twin attacks
 
 ### Networking
 
-* Ethernet
-* ARP
-* IPv4
-* DHCP
-* DNS
-* TCP
-* UDP
-* HTTP
-* HTTPS
-* NAT
-* Default gateways
-* Routing
+- Ethernet
+- ARP
+- IPv4
+- DHCP
+- DNS
+- TCP
+- UDP
+- HTTP
+- HTTPS
+- NAT
+- Default gateways
+- Routing
 
 ### Security
 
-* Man-in-the-Middle attacks
-* Rogue Access Points
-* Captive portals
-* Credential phishing
-* Traffic interception
-* TLS
-* Certificate validation
-* Network monitoring
-* Rogue AP detection
+- Man-in-the-Middle attacks
+- Rogue Access Points
+- Captive portals
+- Credential phishing
+- Traffic interception
+- TLS
+- Certificate validation
+- Network monitoring
+- Rogue AP detection
 
 ### Defensive Security
 
-* Detecting suspicious SSIDs
-* Comparing BSSID information
-* Monitoring signal changes
-* Detecting unexpected gateways
-* Detecting DNS anomalies
-* Detecting captive portals
-* Understanding HTTPS protection
-* Understanding VPN protection
-* Understanding WPA2/WPA3 authentication
+- Detecting suspicious SSIDs
+- Comparing BSSID information
+- Monitoring signal changes
+- Detecting unexpected gateways
+- Detecting DNS anomalies
+- Detecting captive portals
+- Understanding HTTPS protection
+- Understanding VPN protection
+- Understanding WPA2/WPA3 authentication
 
 ---
 
@@ -359,16 +359,16 @@ PyShark
 
 Python makes it easy to work with:
 
-* network interfaces
-* packets
-* sockets
-* HTTP
-* DNS
-* DHCP concepts
-* packet analysis
-* APIs
-* automation
-* security tooling
+- network interfaces
+- packets
+- sockets
+- HTTP
+- DNS
+- DHCP concepts
+- packet analysis
+- APIs
+- automation
+- security tooling
 
 ---
 
@@ -555,6 +555,541 @@ wifitwin-lab/
 ```
 
 ---
+
+# 🔥 Core Functionality
+
+EvilWifi is built around **two main educational security modes**:
+
+```text
+                         EvilWifi
+                            │
+              ┌─────────────┴─────────────┐
+              │                           │
+              ▼                           ▼
+       Network Lab Mode          Evil Twin Simulation
+              │                           │
+              ▼                           ▼
+       Network Analysis           Authentication
+              │                    Demonstration
+              ▼                           │
+       Learn Networking                   ▼
+                                   Learn Wi-Fi Security
+```
+
+Both modes are designed for **authorized networks and test devices only**.
+
+---
+
+# 1. 🌐 Network Lab Mode
+
+## Purpose
+
+Network Lab Mode allows the operator to create a **controlled Wi-Fi laboratory** and connect authorized test devices to it.
+
+The objective is to understand what happens after a device joins a wireless network.
+
+### Basic workflow
+
+```text
+                 EvilWifi
+                    │
+                    ▼
+             Start Lab Network
+                    │
+                    ▼
+              Test Wi-Fi AP
+                    │
+                    │
+             SSID: FahdWiFi-Lab
+                    │
+                    ▼
+              Test Device
+                    │
+                    ▼
+              Network Setup
+                    │
+          ┌─────────┼─────────┐
+          ▼         ▼         ▼
+        DHCP       ARP       DNS
+          │         │         │
+          └─────────┼─────────┘
+                    ▼
+                TCP/UDP
+                    │
+                    ▼
+                HTTP/TLS
+                    │
+                    ▼
+               Lab Services
+```
+
+---
+
+## What Network Lab Mode Does
+
+The tool creates a controlled environment where authorized test devices can connect.
+
+The dashboard displays:
+
+### Wi-Fi information
+
+```text
+SSID
+BSSID
+Channel
+Signal information
+AP status
+```
+
+### Client information
+
+```text
+Connected devices
+IP addresses
+Connection time
+Device activity
+```
+
+### Network information
+
+```text
+DHCP
+Gateway
+DNS
+ARP
+TCP
+UDP
+HTTP
+HTTPS/TLS
+```
+
+### Events
+
+Every relevant network event can appear in the dashboard.
+
+Example:
+
+```text
+15:20:01  Device discovered
+15:20:02  Wi-Fi association
+15:20:03  DHCP request
+15:20:03  IP assigned
+15:20:04  ARP activity
+15:20:05  DNS query
+15:20:06  TCP connection
+15:20:07  HTTPS connection
+```
+
+---
+
+# 2. 👿 Evil Twin Simulation Mode
+
+## Purpose
+
+Evil Twin Simulation Mode demonstrates how an attacker can create a wireless network that **uses the same SSID as another network**.
+
+Example:
+
+```text
+LEGITIMATE NETWORK
+
+SSID:
+FahdWiFi
+```
+
+The laboratory can create:
+
+```text
+SIMULATED ROGUE NETWORK
+
+SSID:
+FahdWiFi
+```
+
+A test device may therefore see:
+
+```text
+FahdWiFi
+FahdWiFi
+```
+
+The important lesson is:
+
+> **An SSID is a name, not proof of network identity.**
+
+---
+
+# Important Authentication Concept
+
+EvilWifi collect the password of the legitimate network if it possible.
+
+A normal WPA2/WPA3 authentication process does not simply transmit:
+
+```text
+password = "mypassword"
+```
+
+to the access point.
+
+Instead, authentication involves cryptographic exchanges.
+
+Conceptually:
+
+```text
+                 Test Device
+                      │
+                      │
+             Authentication
+              communication
+                      │
+                      ▼
+                Rogue AP
+                      │
+                      X
+                      │
+             Real Wi-Fi password
+             is NOT simply sent
+             thats where the tool came
+```
+
+This is an important networking concept that EvilWifi should teach.
+
+---
+
+# 🧪 Authentication Demonstration
+
+Instead of capturing a real password, EvilWifi can provide a **synthetic authentication laboratory**.
+
+Example:
+
+```text
+Real Lab Network
+
+SSID:
+FahdWiFi-Lab
+
+Test password:
+
+training-password-123
+```
+
+The simulator can demonstrate:
+
+```text
+Client
+  │
+  ├── Authentication attempt
+  │
+  ├── Protocol exchange
+  │
+  ├── Authentication result
+  │
+  ▼
+EvilWifi Dashboard
+```
+
+The dashboard explains what happened without storing the password.
+
+---
+
+# 🔍 Authentication Analysis
+
+The Evil Twin module should teach the difference between:
+
+```text
+SSID
+BSSID
+Authentication
+Encryption
+Network identity
+```
+
+Example:
+
+```text
+SSID
+FahdWiFi
+
+BSSID
+AA:BB:CC:11:22:33
+
+Security
+WPA2
+
+Channel
+6
+```
+
+The simulator can then present another AP:
+
+```text
+SSID
+FahdWiFi
+
+BSSID
+DD:EE:FF:44:55:66
+
+Security
+Open
+```
+
+The dashboard can generate:
+
+```text
+⚠ SECURITY WARNING
+
+Two different access points are advertising
+the same SSID.
+
+SSID:
+FahdWiFi
+
+BSSID #1:
+AA:BB:CC:11:22:33
+
+BSSID #2:
+DD:EE:FF:44:55:66
+
+The SSID alone cannot establish that both
+access points belong to the same network.
+```
+
+---
+
+# 🧠 Authentication Learning Module
+
+The application should explain the authentication process visually.
+
+For example:
+
+```text
+             CLIENT
+                │
+                │ Authentication
+                ▼
+             ACCESS
+              POINT
+                │
+                │
+                ▼
+          Cryptographic
+             exchange
+                │
+                ▼
+          Authentication
+             Result
+```
+
+The student can inspect the individual stages and learn:
+
+- Why WPA2 doesn't transmit the password directly
+- What authentication exchanges accomplish
+- What encryption protects
+- Why weak passwords can still be dangerous
+- Why an Evil Twin can be convincing
+- Why network identity matters
+- Why HTTPS still matters after joining Wi-Fi
+
+---
+
+# 🕵️ Evil Twin Detection
+
+The second mode also contains a defensive component.
+
+EvilWifi can analyze the wireless environment and look for suspicious characteristics.
+
+Potential indicators:
+
+```text
+Same SSID
+Different BSSID
+Unexpected security configuration
+Unexpected gateway
+Unexpected DNS
+Unexpected network behavior
+```
+
+Example:
+
+```text
+                 Wireless Environment
+
+                  FahdWiFi
+                     │
+          ┌──────────┴──────────┐
+          │                     │
+          ▼                     ▼
+       BSSID A              BSSID B
+       WPA2                  Open
+       -45 dBm               -30 dBm
+          │                     │
+          │                     │
+          ▼                     ▼
+       Possible              Possible
+       legitimate            rogue AP
+```
+
+The system should describe these as **indicators**, not automatically declare that an AP is malicious.
+
+---
+
+# 📊 Dashboard Modes
+
+The main dashboard should provide:
+
+```text
+┌───────────────────────────────────────────────┐
+│                 EvilWifi                      │
+├───────────────────────────────────────────────┤
+│                                               │
+│ MODE                                          │
+│                                               │
+│ [ Network Lab ]      [ Evil Twin Simulation ]│
+│                                               │
+├───────────────────────────────────────────────┤
+│                                               │
+│ NETWORK                                       │
+│                                               │
+│ SSID:        FahdWiFi-Lab                     │
+│ BSSID:       AA:BB:CC:11:22:33               │
+│ Channel:     6                                │
+│ Clients:     2                                │
+│                                               │
+├───────────────────────────────────────────────┤
+│                                               │
+│ EVENTS                                        │
+│                                               │
+│ Device connected                              │
+│ DHCP completed                                │
+│ DNS query                                     │
+│ HTTPS connection                              │
+│                                               │
+└───────────────────────────────────────────────┘
+```
+
+---
+
+# 🔄 Complete Educational Scenario
+
+The complete EvilWifi demonstration should eventually look like:
+
+```text
+                    START LAB
+                       │
+                       ▼
+              Authorization Check
+                       │
+                       ▼
+                 Select Mode
+                       │
+             ┌─────────┴─────────┐
+             │                   │
+             ▼                   ▼
+       Network Lab         Evil Twin Simulation
+             │                   │
+             ▼                   ▼
+       Test AP                  Duplicate
+             │                    SSID
+             ▼                   │
+       Test Device               ▼
+             │              Test Device
+             ▼                   │
+        DHCP/ARP/DNS             ▼
+             │              Authentication
+             ▼                   │
+        TCP/TLS                  ▼
+             │              Security Analysis
+             └─────────┬─────────┘
+                       ▼
+                 Event Engine
+                       │
+                       ▼
+                Detection Engine
+                       │
+                       ▼
+                  Dashboard
+                       │
+                       ▼
+                 Explanation
+                       │
+                       ▼
+                   Defense
+```
+
+---
+
+# 🔐 Authorization Requirement
+
+Both modes require authorization.
+
+Before either mode starts:
+
+```text
+┌─────────────────────────────────────────────┐
+│ ⚠ AUTHORIZED SECURITY TESTING ONLY         │
+├─────────────────────────────────────────────┤
+│                                             │
+│ This operation must only be performed on    │
+│ networks and devices that you own or are    │
+│ explicitly authorized to test.              │
+│                                             │
+│ [✓] I am authorized to perform this test.   │
+│                                             │
+│          [ CONTINUE ]                       │
+└─────────────────────────────────────────────┘
+```
+
+If authorization is not confirmed:
+
+```text
+START
+  │
+  ▼
+Authorization?
+  │
+  ├── NO ──→ BLOCK
+  │
+  └── YES
+       │
+       ▼
+      LAB
+```
+
+---
+
+# 🎯 Final Purpose
+
+EvilWifi has two complementary goals:
+
+### Network Lab Mode
+
+> **"What actually happens when my device connects to Wi-Fi?"**
+
+### Evil Twin Simulation Mode
+
+> **"What happens when someone creates another network with the same name, and how can I recognize the difference?"**
+
+Together they teach:
+
+```text
+              CONNECT
+                 │
+                 ▼
+              ANALYZE
+                 │
+                 ▼
+             UNDERSTAND
+                 │
+                 ▼
+              DETECT
+                 │
+                 ▼
+              DEFEND
+```
+
+The project is therefore not simply a Wi-Fi attack utility.
+
+It is a **hands-on wireless security laboratory for understanding networks, authentication, Evil Twin threats, and defensive detection.**
 
 # 🌐 Network Architecture
 
@@ -759,10 +1294,10 @@ Example event:
 
 ```json
 {
-    "type": "dns_query",
-    "device": "LAB-DEVICE-01",
-    "domain": "example.test",
-    "timestamp": "2026-08-30T15:12:31Z"
+  "type": "dns_query",
+  "device": "LAB-DEVICE-01",
+  "domain": "example.test",
+  "timestamp": "2026-08-30T15:12:31Z"
 }
 ```
 
