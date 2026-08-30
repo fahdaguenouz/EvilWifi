@@ -54,7 +54,7 @@ export default function Settings() {
           <h2 className="text-xl font-semibold mb-4">Test Captive Portal Submission</h2>
           <p className="text-sm text-muted mb-4">
             Use this form to test how the backend handles credential submissions. 
-            The laboratory MUST be running. Try entering a real password to see the safety model in action.
+            The laboratory MUST be running.
           </p>
           
           <form onSubmit={handlePortalTest} className="space-y-4 bg-background p-6 rounded-lg border border-border">
@@ -96,11 +96,10 @@ export default function Settings() {
         <hr className="border-border" />
 
         <div>
-          <h2 className="text-xl font-semibold mb-4">Safety Model</h2>
+          <h2 className="text-xl font-semibold mb-4">Mode Information</h2>
           <div className="space-y-4 text-muted">
             <p>
-              The application is running in <strong>Educational Mode</strong>. 
-              Real credentials are automatically rejected, and connections to the external internet are blackholed.
+              The application is running. Connections to the external internet are blackholed.
             </p>
           </div>
         </div>
