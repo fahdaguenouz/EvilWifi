@@ -8,4 +8,7 @@ export type LabStatus =
 export interface LabState {
   status: LabStatus;
   mode?: "NETWORK_LAB" | "EVIL_TWIN";
+  ssid?: string | null;
+  interface?: string | null;
+  clients?: number;
 }

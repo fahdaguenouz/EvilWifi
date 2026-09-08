@@ -2,23 +2,42 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Play, Square, Network, Ghost, ExternalLink } from 'lucide-react';
 import { AuthorizationModal } from '../components/AuthorizationModal';
-import { getLabStatus, startLab, stopLab } from '../services/api';
+import { getLabStatus, getNetworkInterfaces, startLab, stopLab } from '../services/api';
 
 export default function Lab() {
   const [isRunning, setIsRunning] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [selectedMode, setSelectedMode] = useState<'NETWORK_LAB' | 'EVIL_TWIN'>('NETWORK_LAB');
+  const [ssid, setSsid] = useState('FahdWiFi-Lab');
+  const [networkInterface, setNetworkInterface] = useState('');
+  const [interfaces, setInterfaces] = useState<string[]>([]);
+  const [error, setError] = useState('');
 
   // On mount, check if already running
   useEffect(() => {
-    getLabStatus().then((data) => {
-      setIsRunning(data.status === 'running');
-      if (data.mode) {
-          setSelectedMode(data.mode);
-      }
-    });
+    Promise.all([getLabStatus(), getNetworkInterfaces()]).then(([lab, interfaceData]) => {
+      setIsRunning(lab.status === 'running');
+      if (lab.mode) setSelectedMode(lab.mode);
+      if (lab.ssid) setSsid(lab.ssid);
+      const detected = interfaceData.interfaces as string[];
+      setInterfaces(detected);
+      setNetworkInterface(lab.interface || interfaceData.recommended || '');
+    }).catch(() => setError('Unable to load laboratory configuration. Check that the backend is running.'));
   }, []);
+
+  const startConfiguredLab = async () => {
+    setError('');
+    try {
+      await startLab(selectedMode, true, ssid.trim(), networkInterface);
+      setIsRunning(true);
+    } catch (requestError) {
+      const message = requestError && typeof requestError === 'object' && 'response' in requestError
+        ? (requestError.response as { data?: { detail?: string } })?.data?.detail
+        : undefined;
+      setError(message || 'The laboratory could not start. Check the selected interface and try again.');
+    }
+  };
 
   const handleStartLab = async () => {
     if (!isAuthorized) {
@@ -26,30 +45,22 @@ export default function Lab() {
       return;
     }
 
-    try {
-      await startLab(selectedMode, true);
-      setIsRunning(true);
-    } catch (e) {
-      console.error("Failed to start lab", e);
-    }
+    await startConfiguredLab();
   };
 
   const handleStopLab = async () => {
     try {
       await stopLab();
       setIsRunning(false);
-    } catch (e) {
-      console.error("Failed to stop lab", e);
+    } catch {
+      setError('The laboratory could not be stopped. Check the backend connection.');
     }
   };
 
   const handleAuthorize = () => {
     setIsAuthorized(true);
     setShowAuthModal(false);
-    // Automatically attempt start after authorization
-    setTimeout(() => {
-      startLab(selectedMode, true).then(() => setIsRunning(true)).catch(console.error);
-    }, 100);
+    void startConfiguredLab();
   };
 
   return (
@@ -67,6 +78,23 @@ export default function Lab() {
           <p className="text-muted mt-2">Manage the rogue access point and simulation settings.</p>
         </header>
 
+        <section className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3 max-w-5xl" aria-label="Laboratory workflow">
+          {[
+            ['1', 'Choose a mode', 'Network Lab teaches normal traffic. Evil Twin adds the safe portal lesson.'],
+            ['2', 'Confirm authorization', 'Use only an isolated lab and devices you own or may test.'],
+            ['3', 'Generate traffic', 'Connect the test device and make a DNS lookup or web request.'],
+            ['4', 'Read the result', 'Open Events for the timeline, then Packet Lab for protocol explanations.'],
+          ].map(([number, title, copy]) => (
+            <div key={number} className="bg-surface border border-border rounded-xl p-4">
+              <span className="text-xs font-bold text-primary uppercase tracking-wide">Step {number}</span>
+              <h2 className="font-semibold text-text mt-2">{title}</h2>
+              <p className="text-sm text-muted mt-1 leading-relaxed">{copy}</p>
+            </div>
+          ))}
+        </section>
+
+        {error && <div role="alert" className="max-w-2xl p-4 rounded-xl border border-accent/40 bg-accent/10 text-accent">{error}</div>}
+
         <div className="bg-surface p-8 rounded-xl border border-border max-w-2xl">
           <div className="flex items-center justify-between mb-8">
             <div>
@@ -74,13 +102,14 @@ export default function Lab() {
               <div className="flex items-center gap-2 mt-2">
                 <span className={`w-3 h-3 rounded-full ${isRunning ? 'bg-success animate-pulse' : 'bg-muted'}`}></span>
                 <span className={isRunning ? 'text-success font-medium' : 'text-muted'}>
-                  {isRunning ? 'Broadcasting' : 'Offline'}
+                  {isRunning ? 'Lab active' : 'Offline'}
                 </span>
               </div>
             </div>
 
             <button
               onClick={isRunning ? handleStopLab : handleStartLab}
+              disabled={!isRunning && (!ssid.trim() || !networkInterface)}
               className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${
                 isRunning 
                   ? 'bg-accent/10 text-accent hover:bg-accent/20' 
@@ -108,9 +137,10 @@ export default function Lab() {
             <div>
               <label className="block text-sm font-medium text-muted mb-3">Simulation Mode</label>
               <div className="grid grid-cols-2 gap-4">
-                <div 
+                <button type="button"
                   onClick={() => !isRunning && setSelectedMode('NETWORK_LAB')}
-                  className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                  disabled={isRunning}
+                  className={`text-left p-4 rounded-xl border cursor-pointer transition-all ${
                     selectedMode === 'NETWORK_LAB' 
                       ? 'border-primary bg-primary/10' 
                       : 'border-border bg-background hover:border-muted'
@@ -119,11 +149,12 @@ export default function Lab() {
                   <Network className={selectedMode === 'NETWORK_LAB' ? 'text-primary' : 'text-muted'} size={24} />
                   <h3 className={`font-semibold mt-3 ${selectedMode === 'NETWORK_LAB' ? 'text-primary' : 'text-text'}`}>Network Lab</h3>
                   <p className="text-xs text-muted mt-1">Controlled Wi-Fi laboratory for understanding post-connection behavior.</p>
-                </div>
+                </button>
 
-                <div 
+                <button type="button"
                   onClick={() => !isRunning && setSelectedMode('EVIL_TWIN')}
-                  className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                  disabled={isRunning}
+                  className={`text-left p-4 rounded-xl border cursor-pointer transition-all ${
                     selectedMode === 'EVIL_TWIN' 
                       ? 'border-accent bg-accent/10' 
                       : 'border-border bg-background hover:border-muted'
@@ -132,7 +163,7 @@ export default function Lab() {
                   <Ghost className={selectedMode === 'EVIL_TWIN' ? 'text-accent' : 'text-muted'} size={24} />
                   <h3 className={`font-semibold mt-3 ${selectedMode === 'EVIL_TWIN' ? 'text-accent' : 'text-text'}`}>Evil Twin</h3>
                   <p className="text-xs text-muted mt-1">SSID impersonation and synthetic authentication demonstration.</p>
-                </div>
+                </button>
               </div>
             </div>
 
@@ -142,19 +173,26 @@ export default function Lab() {
               <label className="block text-sm font-medium text-muted mb-1">Target SSID</label>
               <input 
                 type="text" 
-                defaultValue="FahdWiFi-Lab" 
+                value={ssid}
+                onChange={(event) => setSsid(event.target.value)}
+                maxLength={32}
                 disabled={isRunning}
                 className="w-full bg-background border border-border rounded-lg px-4 py-2 text-text focus:outline-none focus:border-primary disabled:opacity-50"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-muted mb-1">Wireless Interface</label>
-              <input 
-                type="text" 
-                defaultValue="wlan0" 
+              <label htmlFor="network-interface" className="block text-sm font-medium text-muted mb-1">Capture Interface</label>
+              <select
+                id="network-interface"
+                value={networkInterface}
+                onChange={(event) => setNetworkInterface(event.target.value)}
                 disabled={isRunning}
                 className="w-full bg-background border border-border rounded-lg px-4 py-2 text-text focus:outline-none focus:border-primary disabled:opacity-50"
-              />
+              >
+                {interfaces.length === 0 && <option value="">No interface detected</option>}
+                {interfaces.map((name) => <option key={name} value={name}>{name}</option>)}
+              </select>
+              <p className="text-xs text-muted mt-2">Choose the isolated interface carrying your authorized test traffic. Loopback (<span className="font-mono">lo</span>) is usually only useful for local service testing.</p>
             </div>
           </div>
         </div>

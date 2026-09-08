@@ -11,8 +11,13 @@ export const getLabStatus = async () => {
   return response.data;
 };
 
-export const startLab = async (mode: string, authorized: boolean) => {
-  const response = await api.post('/lab/start', { mode, authorized });
+export const startLab = async (mode: string, authorized: boolean, ssid: string, networkInterface: string) => {
+  const response = await api.post('/lab/start', { mode, authorized, ssid, interface: networkInterface });
+  return response.data;
+};
+
+export const getNetworkInterfaces = async () => {
+  const response = await api.get('/lab/interfaces');
   return response.data;
 };
 
@@ -51,5 +56,15 @@ export const enterTrainingSession = async (trainingUser: string, trainingToken: 
     training_user: trainingUser,
     training_token: trainingToken,
   });
+  return response.data;
+};
+
+export const getAnalysisSummary = async () => {
+  const response = await api.get('/analysis/summary');
+  return response.data;
+};
+
+export const getProtocolCatalog = async () => {
+  const response = await api.get('/analysis/protocols');
   return response.data;
 };

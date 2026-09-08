@@ -12,8 +12,13 @@ export function useLab() {
     setLab(response.data);
   }
 
-  async function start() {
-    const response = await api.post("/lab/start");
+  async function start(mode: "NETWORK_LAB" | "EVIL_TWIN", ssid: string, networkInterface: string) {
+    const response = await api.post("/lab/start", {
+      mode,
+      authorized: true,
+      ssid,
+      interface: networkInterface,
+    });
     setLab(response.data);
   }
 

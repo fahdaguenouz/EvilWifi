@@ -3,6 +3,8 @@ import threading
 import asyncio
 import pyshark
 
+from app.services.protocol_classifier import enrich_event
+
 class PacketAnalyzer:
     def __init__(self, interface: str, event_callback):
         self.interface = interface
@@ -83,14 +85,14 @@ class PacketAnalyzer:
                     ip_dst = getattr(pkt.arp, 'dst_proto_ipv4', 'Unknown')
                     mac_src = getattr(pkt.arp, 'src_hw_mac', 'Unknown')
                     if self._rate_limit(f"arp_{ip_dst}"):
-                        self.event_callback("arp_request", {"ip": ip_dst, "from_mac": mac_src})
+                        self._emit_packet_event("arp_request", {"ip": ip_dst, "from_mac": mac_src})
                 return
 
             # Parse DNS
             if hasattr(pkt, 'dns') and hasattr(pkt.dns, 'qry_name'):
                 query = pkt.dns.qry_name
                 if self._rate_limit(f"dns_{query}"):
-                    self.event_callback("dns_query", {"domain": query})
+                    self._emit_packet_event("dns_query", {"domain": query})
                 return
                 
             # Parse DHCP
@@ -100,7 +102,7 @@ class PacketAnalyzer:
                 
                 if req_ip != 'Unknown' or hostname != 'Unknown':
                     if self._rate_limit(f"dhcp_{hostname}_{req_ip}"):
-                        self.event_callback("dhcp_request", {"requested_ip": req_ip, "hostname": hostname})
+                        self._emit_packet_event("dhcp_request", {"requested_ip": req_ip, "hostname": hostname})
                 return
                 
             # Parse HTTP
@@ -110,7 +112,7 @@ class PacketAnalyzer:
                 if host != 'Unknown':
                     url = f"http://{host}{uri}"
                     if self._rate_limit(f"http_{url}"):
-                        self.event_callback("http_request", {"url": url, "host": host})
+                        self._emit_packet_event("http_request", {"url": url, "host": host})
                 return
                 
             # Parse TLS (for SNI)
@@ -119,13 +121,16 @@ class PacketAnalyzer:
                 sni = getattr(pkt.tls, 'handshake_extensions_server_name', None)
                 if sni:
                     if self._rate_limit(f"tls_{sni}"):
-                        self.event_callback("tls_connection", {"sni": sni, "version": "TLS"})
+                        self._emit_packet_event("tls_connection", {"sni": sni, "version": "TLS"})
                 else:
                     # Fallback to IP if no SNI
                     dst_ip = getattr(pkt.ip, 'dst', 'Unknown') if hasattr(pkt, 'ip') else 'Unknown'
                     if dst_ip != 'Unknown' and self._rate_limit(f"https_{dst_ip}"):
-                        self.event_callback("tls_connection", {"sni": dst_ip, "version": "TLS (No SNI)"})
+                        self._emit_packet_event("tls_connection", {"sni": dst_ip, "version": "TLS (No SNI)"})
 
         except Exception as e:
             # Silently drop packet parsing errors to keep the sniffer running
             pass
+
+    def _emit_packet_event(self, event_type: str, metadata: dict):
+        self.event_callback(event_type, enrich_event(event_type, metadata))

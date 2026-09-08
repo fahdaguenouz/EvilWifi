@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
 from app.core.database import engine, Base
-from app.api import lab, sessions, devices, portal, events as api_events
+from app.api import analysis, lab, sessions, devices, portal, events as api_events
 from app.websocket import events as ws_events
 
 @asynccontextmanager
@@ -46,6 +46,7 @@ app.include_router(sessions.router)
 app.include_router(devices.router)
 app.include_router(portal.router)
 app.include_router(api_events.router)
+app.include_router(analysis.router)
 
 # Include WebSocket Router
 app.include_router(ws_events.router)

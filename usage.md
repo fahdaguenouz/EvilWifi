@@ -7,6 +7,8 @@ This document provides detailed instructions on how to set up, run, and interact
 Before running the application, ensure you have the following installed on your machine:
 - **Python 3.12+** (for the FastAPI backend)
 - **Node.js 18+ and npm** (for the React/Vite frontend)
+- **TShark** (the capture engine used by PyShark)
+- Permission to capture traffic on the isolated lab interface you select
 - A modern web browser (Chrome, Firefox, Safari)
 
 ---
@@ -72,23 +74,26 @@ npm run dev
 Open your web browser and navigate to `http://localhost:5173`. You will see the EvilWifi interface.
 
 ### Step 1: Navigating the Interface
-The application features a sidebar with three main sections:
+The application features six main sections:
 - **Dashboard**: A high-level overview of the active lab, connected devices, and active alerts.
 - **Laboratory**: The control center where you can configure and launch the network simulation.
+- **Devices**: Authorized test devices observed during the current or recent lab session.
 - **Events**: A real-time log of network traffic and simulated security events, featuring educational explanations.
-- **Settings**: Configuration options and testing forms (like the Captive Portal Simulator).
+- **Packet Lab**: Protocol classification, visibility analysis, and plain-language packet lessons.
+- **Settings**: Safety boundaries and links to the educational demonstrations.
 
 ### Step 2: Starting the Lab
 1. Go to the **Laboratory** page.
 2. Under "Configuration", select a Lab Mode:
    - **Network Lab Mode**: Simulates a legitimate AP. Use this to study standard Wi-Fi traffic (Association, DHCP, DNS).
    - **Evil Twin Simulation**: Simulates a rogue AP mimicking a legitimate network to study authentication attacks and detection mechanisms.
-3. Click the **Start Lab** button.
-4. **Authorization Check**: You will be prompted with a strict authorization modal. You *must* click "I Understand and Am Authorized" to proceed. The lab will not start otherwise.
+3. Enter the lab SSID label and choose the isolated **Capture Interface** carrying your test traffic. The interface list comes from the backend host; avoid `lo` unless you intentionally want to observe local-only service traffic.
+4. Click the **Start Lab** button.
+5. **Authorization Check**: You will be prompted with a strict authorization modal. You *must* click "I Understand and Am Authorized" to proceed. The lab will not start otherwise.
 
 ### Step 3: Observing Events
 1. Once the lab is running, switch to the **Events** page.
-2. The simulation will automatically generate network traffic, simulating a test device connecting to the AP.
+2. Generate authorized traffic on the selected interface with a test device or local lab service.
 3. You will see events populate in real-time, such as:
    - `device_discovered`
    - `wifi_association`
@@ -104,6 +109,14 @@ The application features a sidebar with three main sections:
    - *Result*: The portal explains the warning signs of a convincing rogue portal and confirms that submitted values were not retained.
 5. Open the **Events** page to review the `captive_portal_opened` and `test_form_submitted` events. Event metadata contains only the outcome and synthetic field names—not submitted values.
 
-### Step 5: Stopping the Lab
-Return to the **Laboratory** page and click **Stop Lab** to halt the simulation and end the session.
+### Step 5: Analyzing Packets
+1. Open **Packet Lab** from the sidebar.
+2. Follow the three analysis stages: **Capture**, **Classify**, and **Explain**.
+3. Review the protocol mix and recent packet lessons.
+4. Compare the visible-event and encrypted-event counts.
+5. Open a recent lesson to connect the observed detail with its security meaning.
 
+The analysis currently classifies ARP, DHCP, DNS, HTTP, and TLS traffic. Plain HTTP and traditional DNS expose more information, while TLS protects content but can leave limited connection metadata visible.
+
+### Step 6: Stopping the Lab
+Return to the **Laboratory** page and click **Stop Lab** to halt the simulation and end the session.

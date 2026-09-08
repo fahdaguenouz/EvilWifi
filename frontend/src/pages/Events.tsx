@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { wsService } from '../services/websocket';
 import { Activity, ShieldAlert, FileText, Wifi, Monitor, Radio, Globe, Lock } from 'lucide-react';
 import type { EventMetadata, StreamEvent } from '../types/event';
+import type { ProtocolAnalysis } from '../types/analysis';
+import { getEvents } from '../services/api';
 
 const EventIcon = ({ type, isAlert }: { type: string, isAlert?: boolean }) => {
   if (isAlert) return <ShieldAlert className="text-accent" size={20} />;
@@ -22,6 +24,23 @@ const EventIcon = ({ type, isAlert }: { type: string, isAlert?: boolean }) => {
 
 const EventExplanation = ({ type, metadata }: { type: string, metadata: EventMetadata }) => {
   const detail = (key: string) => String(metadata[key] ?? 'unknown');
+  const classified = metadata.analysis as ProtocolAnalysis | undefined;
+
+  if (classified?.protocol) {
+    return (
+      <div className="text-sm text-muted mt-2 bg-background p-3 rounded-lg border border-border">
+        <div className="flex flex-wrap gap-2 mb-2">
+          <span className="font-semibold text-primary">{classified.protocol}</span>
+          <span>·</span>
+          <span>{classified.osi_layer}</span>
+          <span>·</span>
+          <span className={classified.encrypted ? 'text-success' : 'text-warning'}>{classified.visibility}</span>
+        </div>
+        <p className="text-text">{classified.summary}</p>
+        <p className="mt-1"><strong className="text-text">Why it matters:</strong> {classified.learning_point}</p>
+      </div>
+    );
+  }
 
   switch(type) {
     case 'device_discovered':
@@ -111,6 +130,12 @@ export default function Events() {
   const [events, setEvents] = useState<StreamEvent[]>([]);
 
   useEffect(() => {
+    let active = true;
+    getEvents(250).then((history) => {
+      if (active) setEvents(history);
+    }).catch(() => {
+      // The live connection can still recover when the backend becomes available.
+    });
     wsService.connect();
     
     const unsubscribe = wsService.subscribe((data) => {
@@ -118,6 +143,7 @@ export default function Events() {
     });
 
     return () => {
+      active = false;
       unsubscribe();
       wsService.disconnect();
     };
@@ -129,6 +155,12 @@ export default function Events() {
         <h1 className="text-3xl font-bold text-text">Event Log</h1>
         <p className="text-muted mt-2">Real-time stream of network and security events.</p>
       </header>
+
+      <section className="grid md:grid-cols-3 gap-3" aria-label="How to read the event log">
+        <div className="bg-surface border border-border rounded-xl p-4"><p className="text-xs font-bold text-primary uppercase tracking-wide">What happened</p><p className="text-sm text-muted mt-2">The event name identifies the network action the lab observed.</p></div>
+        <div className="bg-surface border border-border rounded-xl p-4"><p className="text-xs font-bold text-warning uppercase tracking-wide">What was visible</p><p className="text-sm text-muted mt-2">Protocol analysis distinguishes exposed details from encrypted content.</p></div>
+        <div className="bg-surface border border-border rounded-xl p-4"><p className="text-xs font-bold text-success uppercase tracking-wide">What to learn</p><p className="text-sm text-muted mt-2">Each event connects the packet to a practical security lesson.</p></div>
+      </section>
 
       <div className="bg-surface rounded-xl border border-border overflow-hidden">
         <table className="w-full text-left">
@@ -170,9 +202,10 @@ export default function Events() {
                     {event.is_alert ? (
                       <div className="text-sm text-text mb-1">{event.message}</div>
                     ) : (
-                      <div className="text-sm font-mono text-muted mb-2 bg-background p-2 rounded">
-                        {JSON.stringify(event.event_metadata)}
-                      </div>
+                      <details className="text-sm text-muted mb-2">
+                        <summary className="cursor-pointer hover:text-text">View technical metadata</summary>
+                        <pre className="font-mono whitespace-pre-wrap break-all mt-2 bg-background p-3 rounded">{JSON.stringify(event.event_metadata, null, 2)}</pre>
+                      </details>
                     )}
                     <EventExplanation type={event.event_type || event.alert_type || 'unknown'} metadata={event.event_metadata || {}} />
                   </td>

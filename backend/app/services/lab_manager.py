@@ -21,10 +21,13 @@ class LabManager:
     def get_status(self) -> dict:
         return {
             "status": self.status,
-            "mode": self.mode
+            "mode": self.mode,
+            "ssid": self.ap_manager.ssid,
+            "interface": self.ap_manager.interface,
+            "clients": self.ap_manager.clients(),
         }
 
-    def start(self, mode: LabMode, ssid: str = "FahdWiFi-Lab"):
+    def start(self, mode: LabMode, ssid: str = "FahdWiFi-Lab", interface: str = "eth0"):
         if self.status == LabStatus.RUNNING:
             return
 
@@ -32,7 +35,7 @@ class LabManager:
         self.mode = mode
 
         # Start the access point
-        self.ap_manager.start(ssid=ssid, mode=self.mode.value)
+        self.ap_manager.start(ssid=ssid, mode=self.mode.value, interface=interface)
 
         self.status = LabStatus.RUNNING
 

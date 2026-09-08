@@ -6,12 +6,14 @@ class WebSocketService {
     private socket: WebSocket | null = null;
     private handlers: EventHandler[] = [];
     private url: string;
+    private shouldReconnect = false;
 
     constructor(url: string) {
         this.url = url;
     }
 
     connect() {
+        this.shouldReconnect = true;
         if (this.socket) {
             return;
         }
@@ -34,8 +36,7 @@ class WebSocketService {
         this.socket.onclose = () => {
             console.log('WebSocket disconnected');
             this.socket = null;
-            // Reconnect after 2 seconds
-            setTimeout(() => this.connect(), 2000);
+            if (this.shouldReconnect) setTimeout(() => this.connect(), 2000);
         };
     }
 
@@ -47,6 +48,7 @@ class WebSocketService {
     }
 
     disconnect() {
+        this.shouldReconnect = false;
         if (this.socket) {
             this.socket.close();
         }

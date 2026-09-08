@@ -1685,6 +1685,9 @@ GET  /api/alerts
 GET  /api/network
 GET  /api/network/dns
 
+GET  /api/analysis/protocols
+GET  /api/analysis/summary
+
 GET  /api/education/{topic}
 ```
 
@@ -2060,14 +2063,34 @@ How to steal credentials
 
 # Phase 5 — Packet Analysis
 
-Add:
+Implemented packet-analysis foundation:
 
 ```text
 Scapy
 PyShark
 ```
 
-Build protocol classification.
+Live packets are classified as:
+
+```text
+ARP   → local address discovery
+DHCP  → network configuration
+DNS   → name resolution
+HTTP  → visible web traffic
+TLS   → encrypted web traffic
+```
+
+Each classified event includes:
+
+```text
+Protocol and network layer
+What happened
+What remained visible
+Whether content was encrypted
+Why the event matters
+```
+
+The Packet Lab dashboard summarizes protocol counts and compares visible traffic with encrypted traffic.
 
 Example:
 

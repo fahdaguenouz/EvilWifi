@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Activity, Smartphone, Wifi, AlertTriangle, Network, Ghost } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { getLabStatus } from '../services/api';
+import { getEvents, getLabStatus } from '../services/api';
 import { wsService } from '../services/websocket';
 import type { StreamEvent } from '../types/event';
 import type { LabState } from '../types/lab';
+import { LearningJourney } from '../components/LearningJourney';
 
 type StatColor = 'success' | 'muted' | 'primary' | 'warning' | 'accent';
 
@@ -39,6 +40,7 @@ export default function Dashboard() {
   const [labState, setLabState] = useState<LabState>({ status: 'stopped', mode: 'NETWORK_LAB' });
   const [events, setEvents] = useState<StreamEvent[]>([]);
   const [alerts, setAlerts] = useState<StreamEvent[]>([]);
+  const [backendAvailable, setBackendAvailable] = useState<boolean | null>(null);
   
   // A simple set to track unique devices connecting
   const [devices, setDevices] = useState<Set<number>>(new Set());
@@ -46,10 +48,13 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const data = await getLabStatus();
-        setLabState(data);
-      } catch (e) {
-        console.error("Failed to fetch lab status", e);
+        const [status, recentEvents] = await Promise.all([getLabStatus(), getEvents(100)]);
+        setLabState(status);
+        setEvents(recentEvents);
+        setDevices(new Set(recentEvents.flatMap((event: StreamEvent) => event.device_id ? [event.device_id] : [])));
+        setBackendAvailable(true);
+      } catch {
+        setBackendAvailable(false);
       }
     };
     
@@ -99,6 +104,18 @@ export default function Dashboard() {
           </span>
         </div>
       </header>
+
+      {backendAvailable === false && (
+        <div role="alert" className="rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm text-warning">
+          <strong>Backend offline.</strong> Start the FastAPI service on port 8000 to load lab status, events, and packet analysis.
+        </div>
+      )}
+
+      <LearningJourney
+        isRunning={isRunning}
+        mode={labState.mode}
+        eventTypes={events.flatMap((event) => event.event_type ? [event.event_type] : [])}
+      />
 
       {isEvilTwin && isRunning && (
         <div className="bg-accent/10 border border-accent/50 p-4 rounded-xl flex items-start gap-4">

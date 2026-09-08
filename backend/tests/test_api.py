@@ -10,6 +10,8 @@ from app.api.portal import (
     open_portal,
     router,
 )
+from app.api import lab as lab_api
+from app.api.lab import StartLabRequest
 from app.services.lab_manager import LabMode, LabStatus, lab_manager
 
 
@@ -97,3 +99,39 @@ def test_portal_requires_evil_twin_mode(active_portal, monkeypatch):
 
 def test_legacy_password_endpoint_is_removed():
     assert all(route.path != "/api/portal/login" for route in router.routes)
+
+
+def test_lab_start_passes_visible_configuration_to_manager(monkeypatch):
+    received = {}
+    monkeypatch.setattr(lab_api, "available_interfaces", lambda: ["lab0"])
+    monkeypatch.setattr(lab_manager, "start", lambda **values: received.update(values))
+
+    lab_api.start_lab(
+        StartLabRequest(
+            mode=LabMode.NETWORK_LAB,
+            authorized=True,
+            ssid="Teaching-Lab",
+            interface="lab0",
+        )
+    )
+
+    assert received == {
+        "mode": LabMode.NETWORK_LAB,
+        "ssid": "Teaching-Lab",
+        "interface": "lab0",
+    }
+
+
+def test_lab_start_rejects_an_unknown_interface(monkeypatch):
+    monkeypatch.setattr(lab_api, "available_interfaces", lambda: ["lab0"])
+
+    with pytest.raises(HTTPException) as exc_info:
+        lab_api.start_lab(
+            StartLabRequest(
+                mode=LabMode.NETWORK_LAB,
+                authorized=True,
+                interface="missing0",
+            )
+        )
+
+    assert exc_info.value.status_code == 422
