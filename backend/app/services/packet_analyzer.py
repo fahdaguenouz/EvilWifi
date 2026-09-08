@@ -1,50 +1,69 @@
 import time
-from scapy.all import AsyncSniffer
-from scapy.layers.inet import TCP, UDP, IP
-from scapy.layers.dns import DNS, DNSQR
-from scapy.layers.dhcp import DHCP
 import threading
+import asyncio
+import pyshark
 
 class PacketAnalyzer:
     def __init__(self, interface: str, event_callback):
         self.interface = interface
         self.event_callback = event_callback
-        self.sniffer = None
+        self.capture = None
         self._is_running = False
         self._seen_cache = {}  # Rate limiting cache
+        self._thread = None
+        self._loop = None
         
     def start(self):
         if self._is_running: return
         self._is_running = True
         
-        print(f"[PacketAnalyzer] Starting sniff on {self.interface}...")
+        print(f"[PacketAnalyzer] Starting PyShark sniff on {self.interface}...")
+        
+        self._thread = threading.Thread(target=self._sniff_loop, daemon=True)
+        self._thread.start()
+
+    def _sniff_loop(self):
+        # We filter for DNS, DHCP, HTTP (80), HTTPS (443), ARP
+        bpf_filter = "udp port 53 or udp port 67 or udp port 68 or tcp port 80 or tcp port 443 or arp"
+        
+        # We need a new event loop for the thread because pyshark uses asyncio
+        self._loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self._loop)
+        
         try:
-            # We filter for DNS, DHCP, HTTP (80) and HTTPS (443)
-            bpf_filter = "udp port 53 or udp port 67 or udp port 68 or tcp port 80 or tcp port 443"
-            self.sniffer = AsyncSniffer(
-                iface=self.interface, 
-                filter=bpf_filter,
-                prn=self._process_packet,
-                store=False
-            )
-            self.sniffer.start()
-        except (PermissionError, OSError) as e:
-            print(f"[PacketAnalyzer] Permission denied: Scapy requires root (sudo) privileges to sniff packets! Error: {e}")
-            self._is_running = False
-            self.event_callback("error", {"message": f"Permission denied: {e}. Please run uvicorn with sudo."})
+            self.capture = pyshark.LiveCapture(interface=self.interface, bpf_filter=bpf_filter)
+            for packet in self.capture.sniff_continuously():
+                if not self._is_running:
+                    break
+                self._process_packet(packet)
         except Exception as e:
-            print(f"[PacketAnalyzer] Error starting sniffer: {e}")
+            if self._is_running:
+                print(f"[PacketAnalyzer] Error running PyShark sniffer: {e}")
+                self.event_callback("error", {"message": f"Packet capture failed: {e}. PyShark requires tshark and root privileges."})
+        finally:
             self._is_running = False
 
     def stop(self):
         if not self._is_running: return
         print(f"[PacketAnalyzer] Stopping sniffer on {self.interface}...")
-        if self.sniffer:
-            self.sniffer.stop()
-            self.sniffer.join()
         self._is_running = False
+        if self.capture:
+            try:
+                if self._loop and self._loop.is_running():
+                    asyncio.run_coroutine_threadsafe(self._close_capture(), self._loop)
+                else:
+                    # In case the loop is already closed or not running
+                    self._loop.run_until_complete(self._close_capture())
+            except Exception as e:
+                print(f"Error closing capture: {e}")
         self._seen_cache.clear()
         
+    async def _close_capture(self):
+        try:
+            self.capture.close()
+        except Exception:
+            pass
+
     def _rate_limit(self, key: str, window: int = 5) -> bool:
         """Returns True if the event should be processed, False if it is rate-limited."""
         now = time.time()
@@ -56,37 +75,57 @@ class PacketAnalyzer:
     def _process_packet(self, pkt):
         if not self._is_running: return
         
-        # Parse DNS
-        if pkt.haslayer(DNS) and pkt.haslayer(DNSQR):
-            query = pkt[DNSQR].qname.decode("utf-8", errors="ignore").rstrip('.')
-            if self._rate_limit(f"dns_{query}"):
-                self.event_callback("dns_query", {"domain": query})
-            return
-            
-        # Parse DHCP
-        if pkt.haslayer(DHCP):
-            options = pkt[DHCP].options
-            req_ip = "Unknown"
-            hostname = "Unknown"
-            for opt in options:
-                if isinstance(opt, tuple):
-                    if opt[0] == 'requested_addr':
-                        req_ip = opt[1]
-                    elif opt[0] == 'hostname':
-                        hostname = opt[1].decode("utf-8", errors="ignore")
-            
-            if self._rate_limit(f"dhcp_{hostname}_{req_ip}"):
-                self.event_callback("dhcp_request", {"requested_ip": req_ip, "hostname": hostname})
-            return
-            
-        # Parse TCP (HTTP / HTTPS)
-        if pkt.haslayer(TCP) and pkt.haslayer(IP):
-            dport = pkt[TCP].dport
-            dst_ip = pkt[IP].dst
-            
-            if dport == 80:
-                if self._rate_limit(f"http_{dst_ip}"):
-                    self.event_callback("http_request", {"url": f"http://{dst_ip}"})
-            elif dport == 443:
-                if self._rate_limit(f"https_{dst_ip}"):
-                    self.event_callback("tls_connection", {"sni": dst_ip, "version": "TLS"})
+        try:
+            # Parse ARP
+            if hasattr(pkt, 'arp'):
+                opcode = getattr(pkt.arp, 'opcode', None)
+                if opcode == '1': # request
+                    ip_dst = getattr(pkt.arp, 'dst_proto_ipv4', 'Unknown')
+                    mac_src = getattr(pkt.arp, 'src_hw_mac', 'Unknown')
+                    if self._rate_limit(f"arp_{ip_dst}"):
+                        self.event_callback("arp_request", {"ip": ip_dst, "from_mac": mac_src})
+                return
+
+            # Parse DNS
+            if hasattr(pkt, 'dns') and hasattr(pkt.dns, 'qry_name'):
+                query = pkt.dns.qry_name
+                if self._rate_limit(f"dns_{query}"):
+                    self.event_callback("dns_query", {"domain": query})
+                return
+                
+            # Parse DHCP
+            if hasattr(pkt, 'dhcp'):
+                req_ip = getattr(pkt.dhcp, 'option_requested_ip_address', 'Unknown')
+                hostname = getattr(pkt.dhcp, 'option_hostname', 'Unknown')
+                
+                if req_ip != 'Unknown' or hostname != 'Unknown':
+                    if self._rate_limit(f"dhcp_{hostname}_{req_ip}"):
+                        self.event_callback("dhcp_request", {"requested_ip": req_ip, "hostname": hostname})
+                return
+                
+            # Parse HTTP
+            if hasattr(pkt, 'http'):
+                host = getattr(pkt.http, 'host', 'Unknown')
+                uri = getattr(pkt.http, 'request_uri', '/')
+                if host != 'Unknown':
+                    url = f"http://{host}{uri}"
+                    if self._rate_limit(f"http_{url}"):
+                        self.event_callback("http_request", {"url": url, "host": host})
+                return
+                
+            # Parse TLS (for SNI)
+            if hasattr(pkt, 'tls'):
+                # PyShark exposes the SNI if the packet is a ClientHello
+                sni = getattr(pkt.tls, 'handshake_extensions_server_name', None)
+                if sni:
+                    if self._rate_limit(f"tls_{sni}"):
+                        self.event_callback("tls_connection", {"sni": sni, "version": "TLS"})
+                else:
+                    # Fallback to IP if no SNI
+                    dst_ip = getattr(pkt.ip, 'dst', 'Unknown') if hasattr(pkt, 'ip') else 'Unknown'
+                    if dst_ip != 'Unknown' and self._rate_limit(f"https_{dst_ip}"):
+                        self.event_callback("tls_connection", {"sni": dst_ip, "version": "TLS (No SNI)"})
+
+        except Exception as e:
+            # Silently drop packet parsing errors to keep the sniffer running
+            pass

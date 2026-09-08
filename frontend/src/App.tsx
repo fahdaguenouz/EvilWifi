@@ -5,6 +5,7 @@ import Lab from './pages/Lab';
 import Devices from './pages/Devices';
 import Events from './pages/Events';
 import Settings from './pages/Settings';
+import Portal from './pages/Portal';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
           <Route path="events" element={<Events />} />
           <Route path="settings" element={<Settings />} />
         </Route>
+        <Route path="/portal" element={<Portal />} />
       </Routes>
     </BrowserRouter>
   );

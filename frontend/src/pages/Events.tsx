@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { wsService } from '../services/websocket';
-import { Activity, ShieldAlert, FileText, Wifi, Monitor } from 'lucide-react';
+import { Activity, ShieldAlert, FileText, Wifi, Monitor, Radio, Globe, Lock } from 'lucide-react';
 
 const EventIcon = ({ type, isAlert }: { type: string, isAlert?: boolean }) => {
   if (isAlert) return <ShieldAlert className="text-accent" size={20} />;
@@ -10,8 +10,9 @@ const EventIcon = ({ type, isAlert }: { type: string, isAlert?: boolean }) => {
     case 'wifi_association': return <Wifi className="text-primary" size={20} />;
     case 'dhcp_request': return <Activity className="text-warning" size={20} />;
     case 'dns_query': return <FileText className="text-success" size={20} />;
-    case 'http_request':
-    case 'tls_connection': return <Activity className="text-blue-400" size={20} />;
+    case 'arp_request': return <Radio className="text-purple-400" size={20} />;
+    case 'http_request': return <Globe className="text-blue-400" size={20} />;
+    case 'tls_connection': return <Lock className="text-green-500" size={20} />;
     default: return <Activity className="text-muted" size={20} />;
   }
 };
@@ -48,6 +49,30 @@ const EventExplanation = ({ type, metadata }: { type: string, metadata: any }) =
           <p className="font-semibold text-text mb-1">Educational Context:</p>
           <p>The device is looking up the IP address for '{metadata.domain}'. Since the Rogue AP controls 
              DNS, it can redirect this request to a fake captive portal or phishing site.</p>
+        </div>
+      );
+    case 'arp_request':
+      return (
+        <div className="text-xs text-muted mt-1 bg-background p-2 rounded border border-border">
+          <p className="font-semibold text-text mb-1">Educational Context:</p>
+          <p>The device is broadcasting an ARP "who-has" request to find the MAC address of {metadata.ip}. 
+             This shows how devices discover the local network topology and gateway.</p>
+        </div>
+      );
+    case 'http_request':
+      return (
+        <div className="text-xs text-muted mt-1 bg-background p-2 rounded border border-border">
+          <p className="font-semibold text-text mb-1">Educational Context:</p>
+          <p>The device is sending unencrypted HTTP traffic to {metadata.host}. Because HTTP is plain text, 
+             the Rogue AP can see the exact URL requested: {metadata.url}, and can easily intercept or modify the content.</p>
+        </div>
+      );
+    case 'tls_connection':
+      return (
+        <div className="text-xs text-muted mt-1 bg-background p-2 rounded border border-border">
+          <p className="font-semibold text-text mb-1">Educational Context:</p>
+          <p>The device is initiating an encrypted TLS (HTTPS) connection. While the exact URL path and contents are hidden, 
+             the Server Name Indication (SNI) reveals the domain ({metadata.sni}) being visited.</p>
         </div>
       );
     case 'multiple_bssid':

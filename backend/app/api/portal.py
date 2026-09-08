@@ -20,10 +20,14 @@ def submit_portal_login(request: PortalLoginRequest):
     if not ap_manager._is_running:
         raise HTTPException(status_code=400, detail="Laboratory is not currently running.")
 
+    # Ensure safety: mask the password to avoid persisting real credentials
+    pwd = request.password
+    masked_password = f"{pwd[:2]}***" if len(pwd) >= 2 else "***"
+
     # Record the credential harvesting event
     ap_manager._emit_event(
         "captive_portal_login", 
-        {"username": request.username, "password_used": request.password, "note": "Demonstration of credential harvesting"}
+        {"username": request.username, "password_used": masked_password, "note": "Demonstration of credential harvesting"}
     )
 
     return {"status": "success", "message": "Portal login intercepted successfully."}
