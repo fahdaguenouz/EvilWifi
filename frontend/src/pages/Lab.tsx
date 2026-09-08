@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Play, Square, Network, Ghost } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Play, Square, Network, Ghost, ExternalLink } from 'lucide-react';
 import { AuthorizationModal } from '../components/AuthorizationModal';
 import { getLabStatus, startLab, stopLab } from '../services/api';
 
@@ -92,6 +93,18 @@ export default function Lab() {
           </div>
 
           <div className="space-y-6">
+            {isRunning && selectedMode === 'EVIL_TWIN' && (
+              <div className="p-4 rounded-xl border border-warning/30 bg-warning/10 flex items-center justify-between gap-4">
+                <div>
+                  <p className="font-semibold text-text">Educational portal is ready</p>
+                  <p className="text-sm text-muted mt-1">Use only the synthetic identity displayed on the portal.</p>
+                </div>
+                <Link to="/portal" className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-lg bg-warning text-background font-semibold hover:opacity-90">
+                  Open portal <ExternalLink size={16} />
+                </Link>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-muted mb-3">Simulation Mode</label>
               <div className="grid grid-cols-2 gap-4">

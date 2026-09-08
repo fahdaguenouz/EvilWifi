@@ -7,4 +7,5 @@ export type LabStatus =
 
 export interface LabState {
   status: LabStatus;
+  mode?: "NETWORK_LAB" | "EVIL_TWIN";
 }

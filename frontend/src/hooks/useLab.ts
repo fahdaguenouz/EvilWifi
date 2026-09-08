@@ -23,7 +23,11 @@ export function useLab() {
   }
 
   useEffect(() => {
-    refresh();
+    let active = true;
+    api.get<LabState>("/lab/status").then((response) => {
+      if (active) setLab(response.data);
+    });
+    return () => { active = false; };
   }, []);
 
   return {

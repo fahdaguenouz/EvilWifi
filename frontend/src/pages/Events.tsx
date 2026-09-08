@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { wsService } from '../services/websocket';
 import { Activity, ShieldAlert, FileText, Wifi, Monitor, Radio, Globe, Lock } from 'lucide-react';
+import type { EventMetadata, StreamEvent } from '../types/event';
 
 const EventIcon = ({ type, isAlert }: { type: string, isAlert?: boolean }) => {
   if (isAlert) return <ShieldAlert className="text-accent" size={20} />;
@@ -13,17 +14,21 @@ const EventIcon = ({ type, isAlert }: { type: string, isAlert?: boolean }) => {
     case 'arp_request': return <Radio className="text-purple-400" size={20} />;
     case 'http_request': return <Globe className="text-blue-400" size={20} />;
     case 'tls_connection': return <Lock className="text-green-500" size={20} />;
+    case 'captive_portal_opened': return <Globe className="text-warning" size={20} />;
+    case 'test_form_submitted': return <ShieldAlert className="text-warning" size={20} />;
     default: return <Activity className="text-muted" size={20} />;
   }
 };
 
-const EventExplanation = ({ type, metadata }: { type: string, metadata: any }) => {
+const EventExplanation = ({ type, metadata }: { type: string, metadata: EventMetadata }) => {
+  const detail = (key: string) => String(metadata[key] ?? 'unknown');
+
   switch(type) {
     case 'device_discovered':
       return (
         <div className="text-xs text-muted mt-1 bg-background p-2 rounded border border-border">
           <p className="font-semibold text-text mb-1">Educational Context:</p>
-          <p>A new device ({metadata.mac_hash}) was discovered probing for networks. 
+          <p>A new device ({detail('mac_hash')}) was discovered probing for networks.
              Even before connecting, devices send out probe requests containing their MAC address.</p>
         </div>
       );
@@ -31,7 +36,7 @@ const EventExplanation = ({ type, metadata }: { type: string, metadata: any }) =
       return (
         <div className="text-xs text-muted mt-1 bg-background p-2 rounded border border-border">
           <p className="font-semibold text-text mb-1">Educational Context:</p>
-          <p>The device successfully negotiated a wireless link ({metadata.protocol}) with the access point. 
+          <p>The device successfully negotiated a wireless link ({detail('protocol')}) with the access point.
              This is a Layer 2 connection, but the device doesn't have an IP address yet.</p>
         </div>
       );
@@ -39,15 +44,15 @@ const EventExplanation = ({ type, metadata }: { type: string, metadata: any }) =
       return (
         <div className="text-xs text-muted mt-1 bg-background p-2 rounded border border-border">
           <p className="font-semibold text-text mb-1">Educational Context:</p>
-          <p>The device ({metadata.hostname}) is requesting an IP address. The Rogue AP will assign it an IP 
-             ({metadata.requested_ip}), making itself the default gateway for all outgoing traffic.</p>
+          <p>The device ({detail('hostname')}) is requesting an IP address. The Rogue AP will assign it an IP
+             ({detail('requested_ip')}), making itself the default gateway for all outgoing traffic.</p>
         </div>
       );
     case 'dns_query':
       return (
         <div className="text-xs text-muted mt-1 bg-background p-2 rounded border border-border">
           <p className="font-semibold text-text mb-1">Educational Context:</p>
-          <p>The device is looking up the IP address for '{metadata.domain}'. Since the Rogue AP controls 
+          <p>The device is looking up the IP address for '{detail('domain')}'. Since the Rogue AP controls
              DNS, it can redirect this request to a fake captive portal or phishing site.</p>
         </div>
       );
@@ -55,7 +60,7 @@ const EventExplanation = ({ type, metadata }: { type: string, metadata: any }) =
       return (
         <div className="text-xs text-muted mt-1 bg-background p-2 rounded border border-border">
           <p className="font-semibold text-text mb-1">Educational Context:</p>
-          <p>The device is broadcasting an ARP "who-has" request to find the MAC address of {metadata.ip}. 
+          <p>The device is broadcasting an ARP "who-has" request to find the MAC address of {detail('ip')}.
              This shows how devices discover the local network topology and gateway.</p>
         </div>
       );
@@ -63,8 +68,8 @@ const EventExplanation = ({ type, metadata }: { type: string, metadata: any }) =
       return (
         <div className="text-xs text-muted mt-1 bg-background p-2 rounded border border-border">
           <p className="font-semibold text-text mb-1">Educational Context:</p>
-          <p>The device is sending unencrypted HTTP traffic to {metadata.host}. Because HTTP is plain text, 
-             the Rogue AP can see the exact URL requested: {metadata.url}, and can easily intercept or modify the content.</p>
+          <p>The device is sending unencrypted HTTP traffic to {detail('host')}. Because HTTP is plain text,
+             the Rogue AP can see the exact URL requested: {detail('url')}, and can easily intercept or modify the content.</p>
         </div>
       );
     case 'tls_connection':
@@ -72,7 +77,7 @@ const EventExplanation = ({ type, metadata }: { type: string, metadata: any }) =
         <div className="text-xs text-muted mt-1 bg-background p-2 rounded border border-border">
           <p className="font-semibold text-text mb-1">Educational Context:</p>
           <p>The device is initiating an encrypted TLS (HTTPS) connection. While the exact URL path and contents are hidden, 
-             the Server Name Indication (SNI) reveals the domain ({metadata.sni}) being visited.</p>
+             the Server Name Indication (SNI) reveals the domain ({detail('sni')}) being visited.</p>
         </div>
       );
     case 'multiple_bssid':
@@ -83,13 +88,27 @@ const EventExplanation = ({ type, metadata }: { type: string, metadata: any }) =
              attack, as the rogue AP tries to trick devices into connecting to it instead of the legitimate network.</p>
         </div>
       );
+    case 'captive_portal_opened':
+      return (
+        <div className="text-xs text-muted mt-1 bg-background p-2 rounded border border-border">
+          <p className="font-semibold text-text mb-1">Educational Context:</p>
+          <p>A captive portal can look polished while revealing nothing about who controls the access point. Verify unexpected portals before entering any information.</p>
+        </div>
+      );
+    case 'test_form_submitted':
+      return (
+        <div className="text-xs text-muted mt-1 bg-background p-2 rounded border border-border">
+          <p className="font-semibold text-text mb-1">Privacy check:</p>
+          <p>The training form was submitted. Only the outcome and field names were recorded; submitted values were not stored.</p>
+        </div>
+      );
     default:
       return null;
   }
 };
 
 export default function Events() {
-  const [events, setEvents] = useState<any[]>([]);
+  const [events, setEvents] = useState<StreamEvent[]>([]);
 
   useEffect(() => {
     wsService.connect();
@@ -135,7 +154,7 @@ export default function Events() {
                     {new Date(event.timestamp).toLocaleTimeString()}
                   </td>
                   <td className="p-4 align-top pt-5">
-                    <EventIcon type={event.event_type || event.alert_type} isAlert={event.is_alert} />
+                    <EventIcon type={event.event_type || event.alert_type || 'unknown'} isAlert={event.is_alert} />
                   </td>
                   <td className="p-4 align-top pt-5">
                     <span className={`font-semibold ${event.is_alert ? 'text-accent' : 'text-text'}`}>
@@ -155,7 +174,7 @@ export default function Events() {
                         {JSON.stringify(event.event_metadata)}
                       </div>
                     )}
-                    <EventExplanation type={event.event_type || event.alert_type} metadata={event.event_metadata} />
+                    <EventExplanation type={event.event_type || event.alert_type || 'unknown'} metadata={event.event_metadata || {}} />
                   </td>
                 </tr>
               ))

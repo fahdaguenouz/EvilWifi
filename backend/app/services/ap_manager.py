@@ -165,4 +165,10 @@ class AccessPointManager:
             self._emit_alert("High", "multiple_bssid", f"Multiple access points advertising SSID '{self.ssid}'")
             time.sleep(2)
             if not self._is_running: return
-            self._emit_event("captive_portal_opened", {"type": "Fake Coffee Shop Login"})
+            self._emit_event(
+                "captive_portal_available",
+                {
+                    "portal": "coffee_shop_training",
+                    "purpose": "security_awareness_training",
+                },
+            )

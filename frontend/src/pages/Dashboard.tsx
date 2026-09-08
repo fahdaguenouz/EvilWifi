@@ -1,11 +1,31 @@
 import { useState, useEffect } from 'react';
 import { Activity, Smartphone, Wifi, AlertTriangle, Network, Ghost } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { getLabStatus } from '../services/api';
 import { wsService } from '../services/websocket';
+import type { StreamEvent } from '../types/event';
+import type { LabState } from '../types/lab';
 
-const StatCard = ({ title, value, icon: Icon, color }: any) => (
+type StatColor = 'success' | 'muted' | 'primary' | 'warning' | 'accent';
+
+type StatCardProps = {
+  title: string;
+  value: string;
+  icon: LucideIcon;
+  color: StatColor;
+};
+
+const statColors: Record<StatColor, string> = {
+  success: 'bg-success/10 text-success',
+  muted: 'bg-muted/10 text-muted',
+  primary: 'bg-primary/10 text-primary',
+  warning: 'bg-warning/10 text-warning',
+  accent: 'bg-accent/10 text-accent',
+};
+
+const StatCard = ({ title, value, icon: Icon, color }: StatCardProps) => (
   <div className="bg-surface p-6 rounded-xl border border-border shadow-sm flex items-center gap-4">
-    <div className={`p-4 rounded-lg bg-${color}/10 text-${color}`}>
+    <div className={`p-4 rounded-lg ${statColors[color]}`}>
       <Icon size={24} />
     </div>
     <div>
@@ -16,9 +36,9 @@ const StatCard = ({ title, value, icon: Icon, color }: any) => (
 );
 
 export default function Dashboard() {
-  const [labState, setLabState] = useState<any>({ status: 'stopped', mode: 'NETWORK_LAB' });
-  const [events, setEvents] = useState<any[]>([]);
-  const [alerts, setAlerts] = useState<any[]>([]);
+  const [labState, setLabState] = useState<LabState>({ status: 'stopped', mode: 'NETWORK_LAB' });
+  const [events, setEvents] = useState<StreamEvent[]>([]);
+  const [alerts, setAlerts] = useState<StreamEvent[]>([]);
   
   // A simple set to track unique devices connecting
   const [devices, setDevices] = useState<Set<number>>(new Set());
@@ -46,8 +66,9 @@ export default function Dashboard() {
         setAlerts((prev) => [data, ...prev]);
       } else {
         setEvents((prev) => [data, ...prev]);
-        if (data.device_id) {
-          setDevices((prev) => new Set(prev).add(data.device_id));
+        const deviceId = data.device_id;
+        if (deviceId) {
+          setDevices((prev) => new Set(prev).add(deviceId));
         }
       }
     });

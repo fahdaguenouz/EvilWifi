@@ -1,4 +1,6 @@
-type EventHandler = (event: any) => void;
+import type { StreamEvent } from '../types/event';
+
+type EventHandler = (event: StreamEvent) => void;
 
 class WebSocketService {
     private socket: WebSocket | null = null;
@@ -22,7 +24,7 @@ class WebSocketService {
 
         this.socket.onmessage = (message) => {
             try {
-                const data = JSON.parse(message.data);
+                const data = JSON.parse(message.data) as StreamEvent;
                 this.handlers.forEach(handler => handler(data));
             } catch (e) {
                 console.error('Error parsing WebSocket message', e);

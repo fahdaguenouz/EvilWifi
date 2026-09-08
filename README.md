@@ -280,18 +280,18 @@ The captive portal should therefore never ask users to enter their real Wi-Fi pa
 Instead:
 
 ```text
-Username:
-student
+Training user:
+training-user
 
-Password:
-training-password
+Synthetic token:
+training-token
 ```
 
 The application should explicitly display:
 
-> "LAB ONLY — Never enter a real password."
+> "LAB ONLY — Never enter a real username, password, or token."
 
-The backend should reject known patterns that look like real credentials and should avoid persistent storage of submitted passwords entirely.
+The backend accepts only these fixed training values and never persists submitted values, partial values, or hashes.
 
 ---
 
@@ -768,9 +768,9 @@ Real Lab Network
 SSID:
 FahdWiFi-Lab
 
-Test password:
+Synthetic test token:
 
-training-password-123
+training-token
 ```
 
 The simulator can demonstrate:

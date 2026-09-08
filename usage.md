@@ -97,14 +97,13 @@ The application features a sidebar with three main sections:
 4. Read the **Educational Context** below each event to understand what is happening at a networking level.
 
 ### Step 4: Testing the Captive Portal
-1. With the lab still running in **Evil Twin Simulation Mode**, navigate to the **Settings** page.
-2. Locate the "Test Captive Portal Submission" section.
-3. Try entering a typical password (e.g., `MySecretPassword123`) and click **Simulate Login**.
-   - *Result*: The request will be blocked, demonstrating the safety model in action.
-4. Try entering the designated test password: `training-password`.
-   - *Result*: The login will succeed. Switch back to the **Events** or **Dashboard** page to see the `captive_portal_login` event captured.
+1. With the lab running in **Evil Twin Simulation Mode**, select **Open portal** from the Laboratory page.
+2. Confirm the permanent **LAB ONLY** warning is visible.
+3. Use only the displayed synthetic values: `training-user` and `training-token`.
+4. Select **Enter test session**.
+   - *Result*: The portal explains the warning signs of a convincing rogue portal and confirms that submitted values were not retained.
+5. Open the **Events** page to review the `captive_portal_opened` and `test_form_submitted` events. Event metadata contains only the outcome and synthetic field names—not submitted values.
 
 ### Step 5: Stopping the Lab
 Return to the **Laboratory** page and click **Stop Lab** to halt the simulation and end the session.
-
 

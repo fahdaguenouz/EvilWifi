@@ -35,3 +35,21 @@ export const getEvents = async (limit = 100) => {
   const response = await api.get(`/events/?limit=${limit}`);
   return response.data;
 };
+
+export const getPortalStatus = async () => {
+  const response = await api.get('/portal/status');
+  return response.data;
+};
+
+export const openTrainingPortal = async () => {
+  const response = await api.post('/portal/open');
+  return response.data;
+};
+
+export const enterTrainingSession = async (trainingUser: string, trainingToken: string) => {
+  const response = await api.post('/portal/enter', {
+    training_user: trainingUser,
+    training_token: trainingToken,
+  });
+  return response.data;
+};
