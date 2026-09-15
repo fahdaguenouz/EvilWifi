@@ -67,6 +67,25 @@ def test_packet_analyzer_emits_classified_dns_event():
     assert captured[0][1]["analysis"]["protocol"] == "DNS"
 
 
+def test_packet_analyzer_extracts_gateway_and_dns_from_dhcp():
+    captured = []
+    analyzer = PacketAnalyzer("test-interface", lambda event_type, metadata: captured.append((event_type, metadata)))
+    analyzer._is_running = True
+    packet = SimpleNamespace(
+        dhcp=SimpleNamespace(
+            option_router="10.10.10.254",
+            option_domain_name_server="10.10.10.53",
+        )
+    )
+
+    analyzer._process_packet(packet)
+
+    assert captured[0][0] == "network_configuration"
+    assert captured[0][1]["gateway"] == "10.10.10.254"
+    assert captured[0][1]["dns_server"] == "10.10.10.53"
+    assert captured[0][1]["analysis"]["protocol"] == "DHCP"
+
+
 def test_analysis_summary_counts_only_supported_packet_events():
     now = datetime.now(UTC)
     events = [
@@ -98,4 +117,6 @@ def test_historical_packet_event_is_classified_when_read():
     serialized = serialize_event(event)
 
     assert serialized["event_metadata"]["analysis"]["protocol"] == "HTTP"
+    assert serialized["event_metadata"]["education"]["what_happened"]
+    assert serialized["event_metadata"]["education"]["how_to_protect"]
     assert "analysis" not in event.event_metadata

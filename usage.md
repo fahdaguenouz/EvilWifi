@@ -74,12 +74,14 @@ npm run dev
 Open your web browser and navigate to `http://localhost:5173`. You will see the EvilWifi interface.
 
 ### Step 1: Navigating the Interface
-The application features six main sections:
+The application features eight main sections:
 - **Dashboard**: A high-level overview of the active lab, connected devices, and active alerts.
 - **Laboratory**: The control center where you can configure and launch the network simulation.
 - **Devices**: Authorized test devices observed during the current or recent lab session.
 - **Events**: A real-time log of network traffic and simulated security events, featuring educational explanations.
 - **Packet Lab**: Protocol classification, visibility analysis, and plain-language packet lessons.
+- **Detections**: Defensive indicators, rule explanations, severity, and recommended responses.
+- **Learn**: Short guided modules, workflow explanations, and private in-browser knowledge checks.
 - **Settings**: Safety boundaries and links to the educational demonstrations.
 
 ### Step 2: Starting the Lab
@@ -99,7 +101,7 @@ The application features six main sections:
    - `wifi_association`
    - `dhcp_request`
    - `dns_query`
-4. Read the **Educational Context** below each event to understand what is happening at a networking level.
+4. Read the four-part explanation below each event: what happened, why it matters, what an attacker could learn, and how to protect yourself.
 
 ### Step 4: Testing the Captive Portal
 1. With the lab running in **Evil Twin Simulation Mode**, select **Open portal** from the Laboratory page.
@@ -118,5 +120,34 @@ The application features six main sections:
 
 The analysis currently classifies ARP, DHCP, DNS, HTTP, and TLS traffic. Plain HTTP and traditional DNS expose more information, while TLS protects content but can leave limited connection metadata visible.
 
-### Step 6: Stopping the Lab
+### Step 6: Reviewing Detections
+1. Open **Detections** from the sidebar.
+2. Expand a rule to learn its signal, meaning, and recommended response.
+3. Review observed indicators and their severity.
+4. Treat each result as evidence to investigate—not automatic proof of an attack.
+
+The current rules cover duplicate SSIDs, unexpected BSSIDs, gateways and DNS servers, unexpected captive portals, and unencrypted HTTP.
+
+### Step 7: Completing the Learning Path
+1. Open **Learn** from the sidebar.
+2. Select a module and follow its numbered workflow.
+3. Complete the knowledge check to mark the module finished.
+4. Continue until the progress bar reaches 100%. Progress and answers remain in this browser.
+
+### Step 8: Stopping the Lab
 Return to the **Laboratory** page and click **Stop Lab** to halt the simulation and end the session.
+
+---
+
+## USB Wi-Fi Adapter Readiness
+
+The Laboratory page checks whether a wireless interface, TShark, and packet-capture permission are available.
+
+When running inside VirtualBox:
+
+1. Attach the USB Wi-Fi adapter to the guest from **Devices → USB** in the VirtualBox window.
+2. Wait for a new interface such as `wlan0` or `wlx...` to appear in the Laboratory interface list.
+3. If the adapter remains on the host, disconnect it from the host network manager and attach it to the guest again.
+4. Ensure your user has permission to run `dumpcap`; on Debian-based systems this is commonly managed through the `wireshark` group, followed by signing out and back in.
+
+Do not select or capture from networks and devices outside your authorized isolated lab.

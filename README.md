@@ -2107,7 +2107,7 @@ HTTP
 
 # Phase 6 — Detection Engine
 
-Implement rules:
+Implemented defensive rules:
 
 ```text
 Duplicate SSID
@@ -2129,11 +2129,13 @@ HIGH
 
 alerts.
 
+The detector resets its baseline for every authorized lab session, suppresses duplicate findings, and presents every result as an indicator to investigate rather than proof of an attack. The Detections dashboard explains the observed signal, its meaning, and the safest next response.
+
 ---
 
 # Phase 7 — Educational Mode
 
-Add explanations.
+Implemented event-by-event explanations and an interactive learning path.
 
 For every event:
 
@@ -2148,6 +2150,8 @@ HOW CAN A USER PROTECT THEMSELVES?
 ```
 
 This becomes the main educational feature.
+
+The **Events** page now answers all four questions for live and historical events. The **Learn** page adds four short modules covering Wi-Fi identity, network setup, web visibility, and safe response. Each module includes objectives, a step-by-step workflow, and a knowledge check. Completion is saved only in the local browser.
 
 ---
 
