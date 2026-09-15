@@ -3,6 +3,7 @@ import { wsService } from '../services/websocket';
 import { Activity, ShieldAlert, FileText, Wifi, Monitor, Radio, Globe, Lock } from 'lucide-react';
 import type { EventMetadata, StreamEvent } from '../types/event';
 import type { ProtocolAnalysis } from '../types/analysis';
+import type { EducationalContext } from '../types/education';
 import { getEvents } from '../services/api';
 
 const EventIcon = ({ type, isAlert }: { type: string, isAlert?: boolean }) => {
@@ -12,6 +13,7 @@ const EventIcon = ({ type, isAlert }: { type: string, isAlert?: boolean }) => {
     case 'device_discovered': return <Monitor className="text-primary" size={20} />;
     case 'wifi_association': return <Wifi className="text-primary" size={20} />;
     case 'dhcp_request': return <Activity className="text-warning" size={20} />;
+    case 'network_configuration': return <Activity className="text-warning" size={20} />;
     case 'dns_query': return <FileText className="text-success" size={20} />;
     case 'arp_request': return <Radio className="text-purple-400" size={20} />;
     case 'http_request': return <Globe className="text-blue-400" size={20} />;
@@ -25,19 +27,24 @@ const EventIcon = ({ type, isAlert }: { type: string, isAlert?: boolean }) => {
 const EventExplanation = ({ type, metadata }: { type: string, metadata: EventMetadata }) => {
   const detail = (key: string) => String(metadata[key] ?? 'unknown');
   const classified = metadata.analysis as ProtocolAnalysis | undefined;
+  const education = metadata.education as EducationalContext | undefined;
 
-  if (classified?.protocol) {
+  if (education?.what_happened) {
     return (
-      <div className="text-sm text-muted mt-2 bg-background p-3 rounded-lg border border-border">
-        <div className="flex flex-wrap gap-2 mb-2">
-          <span className="font-semibold text-primary">{classified.protocol}</span>
-          <span>·</span>
-          <span>{classified.osi_layer}</span>
-          <span>·</span>
-          <span className={classified.encrypted ? 'text-success' : 'text-warning'}>{classified.visibility}</span>
+      <div className="text-sm text-muted mt-2 bg-background p-4 rounded-xl border border-border">
+        {classified?.protocol && (
+          <div className="flex flex-wrap gap-2 mb-4 pb-3 border-b border-border">
+            <span className="font-semibold text-primary">{classified.protocol}</span><span>·</span><span>{classified.osi_layer}</span><span>·</span>
+            <span className={classified.encrypted ? 'text-success' : 'text-warning'}>{classified.visibility}</span>
+          </div>
+        )}
+        <p className="text-xs font-bold text-primary uppercase tracking-wide mb-3">{education.concept}</p>
+        <div className="grid md:grid-cols-2 gap-3">
+          <div><h3 className="font-semibold text-text">What happened?</h3><p className="mt-1 leading-relaxed">{education.what_happened}</p></div>
+          <div><h3 className="font-semibold text-text">Why does it matter?</h3><p className="mt-1 leading-relaxed">{education.why_it_matters}</p></div>
+          <div><h3 className="font-semibold text-text">What could an attacker learn?</h3><p className="mt-1 leading-relaxed">{education.attacker_could_learn}</p></div>
+          <div><h3 className="font-semibold text-text">How can a user protect themselves?</h3><p className="mt-1 leading-relaxed">{education.how_to_protect}</p></div>
         </div>
-        <p className="text-text">{classified.summary}</p>
-        <p className="mt-1"><strong className="text-text">Why it matters:</strong> {classified.learning_point}</p>
       </div>
     );
   }

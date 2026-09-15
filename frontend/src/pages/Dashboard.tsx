@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Activity, Smartphone, Wifi, AlertTriangle, Network, Ghost } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { getEvents, getLabStatus } from '../services/api';
+import { getAlerts, getEvents, getLabStatus } from '../services/api';
 import { wsService } from '../services/websocket';
 import type { StreamEvent } from '../types/event';
 import type { LabState } from '../types/lab';
@@ -48,9 +48,10 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchStatus = async () => {
       try {
-        const [status, recentEvents] = await Promise.all([getLabStatus(), getEvents(100)]);
+        const [status, recentEvents, recentAlerts] = await Promise.all([getLabStatus(), getEvents(100), getAlerts(100)]);
         setLabState(status);
         setEvents(recentEvents);
+        setAlerts(recentAlerts);
         setDevices(new Set(recentEvents.flatMap((event: StreamEvent) => event.device_id ? [event.device_id] : [])));
         setBackendAvailable(true);
       } catch {

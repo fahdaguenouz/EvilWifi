@@ -7,6 +7,8 @@ import Events from './pages/Events';
 import Settings from './pages/Settings';
 import Portal from './pages/Portal';
 import Analysis from './pages/Analysis';
+import Detections from './pages/Detections';
+import Learn from './pages/Learn';
 
 function App() {
   return (
@@ -18,6 +20,8 @@ function App() {
           <Route path="devices" element={<Devices />} />
           <Route path="events" element={<Events />} />
           <Route path="analysis" element={<Analysis />} />
+          <Route path="detections" element={<Detections />} />
+          <Route path="learn" element={<Learn />} />
           <Route path="settings" element={<Settings />} />
         </Route>
         <Route path="/portal" element={<Portal />} />

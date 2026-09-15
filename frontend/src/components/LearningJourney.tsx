@@ -22,6 +22,8 @@ export function LearningJourney({ isRunning, mode, eventTypes }: LearningJourney
       ready: mode === 'EVIL_TWIN' && isRunning && hasTraffic && !portalComplete,
     },
     { title: 'Analyze protocols', detail: 'Compare what is visible and encrypted.', href: '/analysis', complete: false, ready: hasTraffic },
+    { title: 'Review detections', detail: 'Investigate indicators and choose a safe response.', href: '/detections', complete: false, ready: hasTraffic },
+    { title: 'Complete the lessons', detail: 'Turn each observation into a practical safety habit.', href: '/learn', complete: false, ready: true },
   ];
 
   return (
@@ -33,7 +35,7 @@ export function LearningJourney({ isRunning, mode, eventTypes }: LearningJourney
         </div>
         <span className="text-sm text-muted hidden sm:block">Learn by following the traffic</span>
       </div>
-      <div className="grid md:grid-cols-4 gap-3">
+      <div className="grid md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-3">
         {steps.map((step, index) => (
           <Link key={step.title} to={step.href} className={`group rounded-xl border p-4 transition-colors ${step.ready ? 'border-primary/60 bg-primary/10' : 'border-border bg-background/60 hover:border-muted'}`}>
             <div className="flex items-center justify-between">

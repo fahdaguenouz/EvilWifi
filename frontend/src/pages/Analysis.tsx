@@ -29,6 +29,7 @@ const detailFor = (event: StreamEvent) => {
   if (event.event_type === 'http_request') return String(metadata.url || metadata.host || 'Request unavailable');
   if (event.event_type === 'tls_connection') return String(metadata.sni || 'Encrypted destination');
   if (event.event_type === 'dhcp_request') return String(metadata.hostname || metadata.requested_ip || 'Network configuration');
+  if (event.event_type === 'network_configuration') return `Gateway ${String(metadata.gateway || 'unknown')} · DNS ${String(metadata.dns_server || 'unknown')}`;
   if (event.event_type === 'arp_request') return String(metadata.ip || 'Local address discovery');
   return 'Laboratory event';
 };

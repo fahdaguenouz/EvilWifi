@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Play, Square, Network, Ghost, ExternalLink } from 'lucide-react';
+import { Play, Square, Network, Ghost, ExternalLink, Wifi } from 'lucide-react';
 import { AuthorizationModal } from '../components/AuthorizationModal';
 import { getLabStatus, getNetworkInterfaces, startLab, stopLab } from '../services/api';
 
@@ -13,6 +13,11 @@ export default function Lab() {
   const [networkInterface, setNetworkInterface] = useState('');
   const [interfaces, setInterfaces] = useState<string[]>([]);
   const [error, setError] = useState('');
+  const [wirelessReady, setWirelessReady] = useState(false);
+  const [usbWirelessInterfaces, setUsbWirelessInterfaces] = useState<string[]>([]);
+  const [readinessIssues, setReadinessIssues] = useState<string[]>([]);
+  const [captureStatus, setCaptureStatus] = useState<'stopped' | 'starting' | 'running' | 'error'>('stopped');
+  const [captureError, setCaptureError] = useState<string | null>(null);
 
   // On mount, check if already running
   useEffect(() => {
@@ -20,17 +25,37 @@ export default function Lab() {
       setIsRunning(lab.status === 'running');
       if (lab.mode) setSelectedMode(lab.mode);
       if (lab.ssid) setSsid(lab.ssid);
+      setCaptureStatus(lab.capture_status || 'stopped');
+      setCaptureError(lab.capture_error || null);
       const detected = interfaceData.interfaces as string[];
       setInterfaces(detected);
       setNetworkInterface(lab.interface || interfaceData.recommended || '');
+      setWirelessReady(Boolean(interfaceData.wireless_ready));
+      setUsbWirelessInterfaces(interfaceData.usb_wireless_interfaces || []);
+      setReadinessIssues(interfaceData.issues || []);
     }).catch(() => setError('Unable to load laboratory configuration. Check that the backend is running.'));
   }, []);
+
+  useEffect(() => {
+    if (!isRunning) return;
+    const interval = window.setInterval(() => {
+      getLabStatus().then((lab) => {
+        setCaptureStatus(lab.capture_status || 'running');
+        setCaptureError(lab.capture_error || null);
+      }).catch(() => {
+        // The main error state handles explicit start/stop failures.
+      });
+    }, 3000);
+    return () => window.clearInterval(interval);
+  }, [isRunning]);
 
   const startConfiguredLab = async () => {
     setError('');
     try {
-      await startLab(selectedMode, true, ssid.trim(), networkInterface);
+      const result = await startLab(selectedMode, true, ssid.trim(), networkInterface);
       setIsRunning(true);
+      setCaptureStatus(result.capture_status || 'running');
+      setCaptureError(result.capture_error || null);
     } catch (requestError) {
       const message = requestError && typeof requestError === 'object' && 'response' in requestError
         ? (requestError.response as { data?: { detail?: string } })?.data?.detail
@@ -50,8 +75,10 @@ export default function Lab() {
 
   const handleStopLab = async () => {
     try {
-      await stopLab();
+      const result = await stopLab();
       setIsRunning(false);
+      setCaptureStatus(result.capture_status || 'stopped');
+      setCaptureError(null);
     } catch {
       setError('The laboratory could not be stopped. Check the backend connection.');
     }
@@ -94,6 +121,29 @@ export default function Lab() {
         </section>
 
         {error && <div role="alert" className="max-w-2xl p-4 rounded-xl border border-accent/40 bg-accent/10 text-accent">{error}</div>}
+
+        {captureStatus === 'error' && captureError && (
+          <div role="alert" className="max-w-2xl p-4 rounded-xl border border-accent/40 bg-accent/10 text-accent">
+            <strong>Capture stopped:</strong> {captureError}
+          </div>
+        )}
+
+        <section className={`max-w-2xl rounded-xl border p-4 ${wirelessReady ? 'border-success/30 bg-success/10' : 'border-warning/30 bg-warning/10'}`} aria-label="Wireless capture readiness">
+          <div className="flex items-start gap-3">
+            <Wifi className={wirelessReady ? 'text-success' : 'text-warning'} size={22} />
+            <div>
+              <h2 className="font-semibold text-text">{wirelessReady ? 'Wireless capture ready' : 'Wireless capture needs attention'}</h2>
+              {wirelessReady ? (
+                <p className="text-sm text-muted mt-1">Ready interface: <span className="font-mono text-text">{usbWirelessInterfaces[0] || networkInterface}</span></p>
+              ) : (
+                <ul className="mt-2 space-y-1 text-sm text-muted list-disc pl-5">
+                  {readinessIssues.map((issue) => <li key={issue}>{issue}</li>)}
+                </ul>
+              )}
+              {!wirelessReady && <p className="text-xs text-muted mt-2">You may still use Ethernet or loopback for protocol-learning tests; wireless-specific testing requires a visible Wi-Fi interface and capture permission.</p>}
+            </div>
+          </div>
+        </section>
 
         <div className="bg-surface p-8 rounded-xl border border-border max-w-2xl">
           <div className="flex items-center justify-between mb-8">

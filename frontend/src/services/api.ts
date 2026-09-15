@@ -68,3 +68,18 @@ export const getProtocolCatalog = async () => {
   const response = await api.get('/analysis/protocols');
   return response.data;
 };
+
+export const getAlerts = async (limit = 100) => {
+  const response = await api.get(`/alerts/?limit=${limit}`);
+  return response.data;
+};
+
+export const getDetectionRules = async () => {
+  const response = await api.get('/alerts/rules');
+  return response.data;
+};
+
+export const getLearningModules = async () => {
+  const response = await api.get('/education/topics');
+  return response.data;
+};
