@@ -97,6 +97,23 @@ class PacketAnalyzer:
                 
             # Parse DHCP
             if hasattr(pkt, 'dhcp'):
+                gateway = self._first_field(pkt.dhcp, "option_router", "option_router_address")
+                dns_server = self._first_field(
+                    pkt.dhcp,
+                    "option_domain_name_server",
+                    "option_domain_name_server_address",
+                )
+                if gateway or dns_server:
+                    configuration = {}
+                    if gateway:
+                        configuration["gateway"] = gateway
+                    if dns_server:
+                        configuration["dns_server"] = dns_server
+                    key = f"network_config_{gateway}_{dns_server}"
+                    if self._rate_limit(key):
+                        self._emit_packet_event("network_configuration", configuration)
+                    return
+
                 req_ip = getattr(pkt.dhcp, 'option_requested_ip_address', 'Unknown')
                 hostname = getattr(pkt.dhcp, 'option_hostname', 'Unknown')
                 
@@ -134,3 +151,11 @@ class PacketAnalyzer:
 
     def _emit_packet_event(self, event_type: str, metadata: dict):
         self.event_callback(event_type, enrich_event(event_type, metadata))
+
+    @staticmethod
+    def _first_field(layer, *field_names):
+        for field_name in field_names:
+            value = getattr(layer, field_name, None)
+            if value and value != "Unknown":
+                return str(value).split(",")[0].strip()
+        return None

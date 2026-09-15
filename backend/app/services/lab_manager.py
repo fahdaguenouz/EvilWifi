@@ -25,6 +25,8 @@ class LabManager:
             "ssid": self.ap_manager.ssid,
             "interface": self.ap_manager.interface,
             "clients": self.ap_manager.clients(),
+            "capture_status": self.ap_manager.capture_status,
+            "capture_error": self.ap_manager.capture_error,
         }
 
     def start(self, mode: LabMode, ssid: str = "FahdWiFi-Lab", interface: str = "eth0"):

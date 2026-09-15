@@ -1,6 +1,8 @@
 from copy import deepcopy
 from typing import Any
 
+from app.services.education import educational_context
+
 
 PROTOCOL_PROFILES: dict[str, dict[str, Any]] = {
     "arp_request": {
@@ -20,6 +22,15 @@ PROTOCOL_PROFILES: dict[str, dict[str, Any]] = {
         "visibility": "Visible on the local network",
         "summary": "A device requested network settings such as an IP address and gateway.",
         "learning_point": "The DHCP server can influence which gateway and DNS server a device trusts.",
+    },
+    "network_configuration": {
+        "protocol": "DHCP",
+        "osi_layer": "Application over UDP",
+        "category": "network_configuration",
+        "encrypted": False,
+        "visibility": "Assigned gateway and DNS server visible locally",
+        "summary": "A DHCP response supplied network configuration to a device.",
+        "learning_point": "Unexpected gateway or DNS values can redirect where a device sends traffic.",
     },
     "dns_query": {
         "protocol": "DNS",
@@ -71,6 +82,7 @@ def enrich_event(event_type: str, metadata: dict[str, Any]) -> dict[str, Any]:
     """Attach analysis without mutating caller-owned packet metadata."""
     enriched = deepcopy(metadata)
     enriched["analysis"] = classify_event(event_type)
+    enriched["education"] = educational_context(event_type)
     return enriched
 
 
