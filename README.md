@@ -41,6 +41,7 @@ Instead, the simulator uses deliberately fake credentials, synthetic traffic, an
 - [Phase 6](#phase-6---detection)
 - [Phase 7](#phase-7---educational-mode)
 - [Phase 8](#phase-8---end-of-lab-review)
+- [Phase 9](#phase-9---real-isolated-access-point)
 - [Testing](#-testing)
 - [Security Requirements](#-security-requirements)
 - [Learning Topics](#-learning-topics)
@@ -2171,6 +2172,81 @@ TRUST SCORE
 The score deducts points once per distinct defensive indicator. Capture errors lower evidence confidence instead of being presented as hostile activity. The result is explicitly a learning aid—not proof that a network is safe or malicious.
 
 The complete concept and workflow reference is in [`PROJECT_CONCEPTS_AND_FLOW.md`](PROJECT_CONCEPTS_AND_FLOW.md).
+
+---
+
+# Phase 9 — Real Isolated Access Point
+
+**Status:** Planned — blocked until an AP-capable USB Wi-Fi adapter is attached.
+
+The current Ralink MT7601U is suitable for passive capture, but its Linux driver exposes only `managed` and `monitor` modes. NetworkManager also reports `WIFI-PROPERTIES.AP: no`, so it cannot broadcast the laboratory network.
+
+Before implementing this phase, the replacement adapter must show:
+
+```text
+iw list
+    ↓
+Supported interface modes:
+    * AP
+```
+
+The recommended arrangement is:
+
+```text
+AP-capable USB adapter     → broadcasts the isolated lab SSID
+MT7601U adapter            → passive observation and packet capture
+Owned test phone/laptop    → connects to the authorized lab only
+```
+
+Implementation plan:
+
+```text
+Validate AP capability
+    ↓
+Create a temporary hostapd configuration
+    ↓
+Assign an isolated private gateway address
+    ↓
+Run dnsmasq for lab-only DHCP and DNS
+    ↓
+Block upstream forwarding by default
+    ↓
+Connect an owned test device
+    ↓
+Observe real association, DHCP, ARP, DNS, HTTP, and TLS events
+    ↓
+Route the safe synthetic captive portal inside the lab
+    ↓
+Stop services and restore the adapter configuration
+```
+
+Safety requirements:
+
+- Require the existing authorization confirmation before activation.
+- Allow only an explicitly selected AP-capable wireless interface.
+- Use a dedicated RFC1918 subnet that does not overlap existing networks.
+- Keep internet forwarding and NAT disabled by default.
+- Use an explicit lab-only SSID and access key so nearby devices do not join accidentally.
+- Never perform deauthentication, jamming, forced association, or frame injection.
+- Never collect real credentials; keep the fixed synthetic portal identity.
+- Record every system action and always provide a reliable stop-and-restore path.
+- Fail closed if `hostapd`, `dnsmasq`, interface ownership, or firewall isolation cannot be verified.
+
+Completion criteria:
+
+```text
+AP-capable adapter verified
+    +
+Owned device receives a lab IP address
+    +
+No upstream internet route exists
+    +
+Real traffic appears in Events and Packet Lab
+    +
+Detections and educational explanations use captured evidence
+    +
+Stopping the lab removes the AP and restores networking
+```
 
 ---
 
