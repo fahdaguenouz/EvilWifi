@@ -9,6 +9,7 @@ import Portal from './pages/Portal';
 import Analysis from './pages/Analysis';
 import Detections from './pages/Detections';
 import Learn from './pages/Learn';
+import Review from './pages/Review';
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
           <Route path="analysis" element={<Analysis />} />
           <Route path="detections" element={<Detections />} />
           <Route path="learn" element={<Learn />} />
+          <Route path="review" element={<Review />} />
           <Route path="settings" element={<Settings />} />
         </Route>
         <Route path="/portal" element={<Portal />} />

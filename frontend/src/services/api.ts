@@ -83,3 +83,8 @@ export const getLearningModules = async () => {
   const response = await api.get('/education/topics');
   return response.data;
 };
+
+export const getLatestSessionReview = async () => {
+  const response = await api.get('/reports/latest');
+  return response.data;
+};

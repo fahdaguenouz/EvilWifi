@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Activity, BookOpen, FlaskConical, LayoutDashboard, ScanSearch, Settings, ShieldAlert, Smartphone } from 'lucide-react';
+import { Activity, BookOpen, ClipboardCheck, FlaskConical, LayoutDashboard, ScanSearch, Settings, ShieldAlert, Smartphone } from 'lucide-react';
 
 const navItems = [
   { to: '/', label: 'Dashboard', shortLabel: 'Home', icon: LayoutDashboard },
@@ -9,6 +9,7 @@ const navItems = [
   { to: '/analysis', label: 'Packet Lab', shortLabel: 'Analyze', icon: ScanSearch },
   { to: '/detections', label: 'Detections', shortLabel: 'Detect', icon: ShieldAlert },
   { to: '/learn', label: 'Learn', shortLabel: 'Learn', icon: BookOpen },
+  { to: '/review', label: 'Session Review', shortLabel: 'Review', icon: ClipboardCheck },
   { to: '/settings', label: 'Settings', shortLabel: 'Settings', icon: Settings },
 ];
 
