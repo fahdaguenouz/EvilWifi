@@ -40,6 +40,7 @@ Instead, the simulator uses deliberately fake credentials, synthetic traffic, an
 - [Phase 5](#phase-5---traffic-analysis)
 - [Phase 6](#phase-6---detection)
 - [Phase 7](#phase-7---educational-mode)
+- [Phase 8](#phase-8---end-of-lab-review)
 - [Testing](#-testing)
 - [Security Requirements](#-security-requirements)
 - [Learning Topics](#-learning-topics)
@@ -2152,6 +2153,24 @@ HOW CAN A USER PROTECT THEMSELVES?
 This becomes the main educational feature.
 
 The **Events** page now answers all four questions for live and historical events. The **Learn** page adds four short modules covering Wi-Fi identity, network setup, web visibility, and safe response. Each module includes objectives, a step-by-step workflow, and a knowledge check. Completion is saved only in the local browser.
+
+---
+
+# Phase 8 — End-of-Lab Review
+
+Implemented a transparent session summary that combines:
+
+```text
+TRUST SCORE
++ EVIDENCE CONFIDENCE
++ DISTINCT FINDINGS
++ OBSERVED CONCEPTS
++ RECOMMENDED NEXT STEPS
+```
+
+The score deducts points once per distinct defensive indicator. Capture errors lower evidence confidence instead of being presented as hostile activity. The result is explicitly a learning aid—not proof that a network is safe or malicious.
+
+The complete concept and workflow reference is in [`PROJECT_CONCEPTS_AND_FLOW.md`](PROJECT_CONCEPTS_AND_FLOW.md).
 
 ---
 

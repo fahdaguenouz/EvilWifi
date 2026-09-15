@@ -74,7 +74,7 @@ npm run dev
 Open your web browser and navigate to `http://localhost:5173`. You will see the EvilWifi interface.
 
 ### Step 1: Navigating the Interface
-The application features eight main sections:
+The application features nine main sections:
 - **Dashboard**: A high-level overview of the active lab, connected devices, and active alerts.
 - **Laboratory**: The control center where you can configure and launch the network simulation.
 - **Devices**: Authorized test devices observed during the current or recent lab session.
@@ -82,6 +82,7 @@ The application features eight main sections:
 - **Packet Lab**: Protocol classification, visibility analysis, and plain-language packet lessons.
 - **Detections**: Defensive indicators, rule explanations, severity, and recommended responses.
 - **Learn**: Short guided modules, workflow explanations, and private in-browser knowledge checks.
+- **Session Review**: The latest session's trust score, evidence confidence, distinct findings, concepts, and next steps.
 - **Settings**: Safety boundaries and links to the educational demonstrations.
 
 ### Step 2: Starting the Lab
@@ -136,6 +137,14 @@ The current rules cover duplicate SSIDs, unexpected BSSIDs, gateways and DNS ser
 
 ### Step 8: Stopping the Lab
 Return to the **Laboratory** page and click **Stop Lab** to halt the simulation and end the session.
+
+### Step 9: Reviewing the Session
+1. Open **Session Review** from the sidebar.
+2. Read the trust score together with its evidence confidence.
+3. Review each distinct finding and its point impact.
+4. Expand the observed concepts and follow the recommended next steps.
+
+A high score is not a guarantee of safety, especially when evidence confidence is limited.
 
 ---
 
