@@ -7,7 +7,7 @@ export type LabStatus =
 
 export interface LabState {
   status: LabStatus;
-  mode?: "NETWORK_LAB" | "EVIL_TWIN";
+  mode?: "NETWORK_LAB" | "EVIL_TWIN" | "WIFI_MONITOR" | "REAL_AP";
   ssid?: string | null;
   interface?: string | null;
   clients?: number;

@@ -28,10 +28,10 @@ def _require_active_evil_twin_lab():
             detail="Start the laboratory before opening the training portal.",
         )
 
-    if lab_manager.mode != LabMode.EVIL_TWIN:
+    if lab_manager.mode not in (LabMode.EVIL_TWIN, LabMode.REAL_AP):
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="The training portal is available only in Evil Twin simulation mode.",
+            detail="The training portal is available only in Evil Twin or Real AP mode.",
         )
 
     return lab_manager.ap_manager
@@ -42,7 +42,7 @@ def get_portal_status():
     available = (
         lab_manager.status == LabStatus.RUNNING
         and lab_manager.ap_manager._is_running
-        and lab_manager.mode == LabMode.EVIL_TWIN
+        and lab_manager.mode in (LabMode.EVIL_TWIN, LabMode.REAL_AP)
     )
     return {
         "available": available,

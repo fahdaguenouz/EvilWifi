@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 from app.services.lab_manager import lab_manager, LabMode
+from app.services.real_ap import RealAccessPoint
 
 router = APIRouter(
     prefix="/api/lab",
@@ -93,6 +94,8 @@ def get_interfaces():
     return {
         "interfaces": interfaces,
         "recommended": recommended,
+        "real_ap_ready": RealAccessPoint.is_supported(),
+        "real_ap_requirements": RealAccessPoint.unmet_requirements(),
         **readiness,
     }
 

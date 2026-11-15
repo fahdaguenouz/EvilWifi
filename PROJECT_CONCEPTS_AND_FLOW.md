@@ -13,7 +13,7 @@ The application is designed around four rules:
 3. Use only the fixed `training-user` and `training-token` in the captive-portal lesson.
 4. Do not collect real credentials or bypass HTTPS, certificate warnings, or device protections.
 
-The current project passively analyzes traffic visible to the selected interface and simulates the educational Evil Twin lifecycle. It does not automatically configure `hostapd`, force devices to disconnect, inject frames, or defeat wireless encryption.
+The project can passively analyze traffic visible to the selected interface, capture real 802.11 management frames in monitor mode, and stand up a **real isolated access point** (hostapd + dnsmasq) that an authorized test device joins. It still refuses the offensive half of these techniques: it does **not** exploit, deploy payloads to, open reverse shells on, or steal data from any connected device; it does not force devices to disconnect, inject deauthentication frames, or defeat wireless encryption. The real access point is **isolated by default** — no NAT, no internet uplink, no forwarding — and the captive portal only ever accepts the fixed synthetic training identity.
 
 ## 2. The central idea
 
@@ -57,6 +57,19 @@ FastAPI backend (port 8000) ───────────┘
 - **Device**: an authorized test device associated with a session.
 - **Event**: an observed or simulated action with non-sensitive metadata.
 - **Alert**: a defensive finding with severity, type, message, and session.
+
+### Lab modes
+
+The Laboratory offers four modes:
+
+| Mode | What it does | Needs |
+|---|---|---|
+| `NETWORK_LAB` | Passive L3 capture (DNS/DHCP/HTTP/TLS/ARP) of post-connection traffic | tshark capture on the interface |
+| `EVIL_TWIN` | Simulated Evil Twin lifecycle plus the synthetic captive-portal lesson | nothing special (simulation) |
+| `WIFI_MONITOR` | Real 802.11 management-frame capture (beacons, probes, auth/assoc, **deauth**) | a monitor-mode-capable interface |
+| `REAL_AP` | A **real isolated access point** (hostapd + dnsmasq) an authorized test device joins, plus the synthetic captive portal | AP-capable adapter, hostapd + dnsmasq, backend running as root |
+
+`WIFI_MONITOR` and `REAL_AP` degrade gracefully: if the hardware, driver, or privileges are missing, the lab still opens and reports a clear, non-fatal reason instead of crashing. The `REAL_AP` network is isolated by design — it gives a joined device a lab IP, lab gateway, and lab DNS, and nothing leaves the lab.
 
 ## 4. Core networking concepts
 
@@ -112,7 +125,12 @@ Historical events are enriched when read, so older records receive current proto
 |---|---|---|
 | `device_discovered` | A test device became observable | Device presence and timing can be metadata |
 | `wifi_association` | A device formed a wireless link | Association selects an access point to trust |
-| `access_point_observed` | An AP identity was observed | SSID and BSSID require context |
+| `access_point_observed` | An AP identity was observed (real beacon or real AP) | SSID and BSSID require context |
+| `probe_request` | A client searched for networks | Probe requests can leak remembered SSIDs |
+| `probe_response` | An AP answered a probe | Any radio can answer for any SSID |
+| `wifi_authentication` | The 802.11 auth exchange began | Open 802.11 auth proves no identity |
+| `deauth_frame` | A deauthentication frame was seen | Classic Evil Twin / denial-of-service signal |
+| `disassociation_frame` | A link teardown frame was seen | Often unprotected and forgeable |
 | `arp_request` | A local IPv4 owner was requested | ARP reveals local relationships |
 | `dhcp_request` | A device requested network settings | DHCP influences local trust |
 | `network_configuration` | Gateway or DNS settings were supplied | Unexpected infrastructure deserves review |
@@ -141,6 +159,8 @@ Current rules cover:
 - Unexpected DNS server
 - Unexpected captive portal
 - Unencrypted HTTP
+- Deauthentication activity (escalates to a likely flood on a burst)
+- Open (unencrypted) network advertised in a beacon
 
 Severity communicates review priority: `INFO`, `LOW`, `MEDIUM`, or `HIGH`. A high-severity alert is still an indicator, not a verdict.
 
@@ -270,5 +290,25 @@ Adding a user to the `wireshark` group does not update already-running desktop s
 6. Defensive detection engine
 7. Educational explanations and learning modules
 8. End-of-lab review and transparent trust score
+9. Real 802.11 monitor capture (`WIFI_MONITOR`): beacon/probe/auth/assoc/deauth events, with deauth-activity and open-network detection rules and a `scripts/monitor_mode.sh` helper
+10. Real isolated access point (`REAL_AP`): hostapd + dnsmasq AP for an authorized test device, synthetic captive portal, isolated-by-default (no NAT/uplink), with graceful fallback when hardware/privileges are missing
 
-Future work can build on this foundation with topology visualization, session selection/comparison, report export, authorized PCAP export, certificate observations, and richer wireless-environment visualization.
+## 15. What we built most recently, and what is next
+
+**Recently added (phases 9–10):**
+
+- `WIFI_MONITOR` mode and 802.11 management-frame parsing in the packet analyzer, including new events (`probe_request`, `probe_response`, `wifi_authentication`, `deauth_frame`, `disassociation_frame`) with protocol profiles and four-part education.
+- Detection rules `deauth_activity` (escalates to a likely flood) and `open_network`.
+- `scripts/monitor_mode.sh` to enable/disable monitor mode on an interface.
+- `REAL_AP` mode backed by `app/services/real_ap.py`: generates real hostapd/dnsmasq configs, brings up an isolated `10.10.10.0/24` lab network, serves the synthetic captive portal, and tears everything down cleanly. The backend reports real-AP readiness (`/api/lab/interfaces`).
+
+**Hardware note:** live `WIFI_MONITOR` and `REAL_AP` need a capable USB adapter. A built-in Intel (iwlwifi) card and a Realtek RTL8188EUS on the stock `rtl8xxxu` driver were both unable to deliver management frames in testing; a dedicated monitor/injection adapter is the intended path.
+
+**Planned next:**
+
+- PCAP import + replay so lessons run with no live hardware.
+- Live network topology visualization (device → AP → gateway → DNS).
+- Channel hopping for monitor mode (see all APs, not one channel).
+- Session comparison and report export.
+
+**Deliberately out of scope (safety boundary):** exploiting connected devices, deploying payloads or reverse shells, harvesting real credentials or data, and deauthentication/injection attacks. This stays a defensive, educational lab.

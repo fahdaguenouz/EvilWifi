@@ -10,6 +10,7 @@ from app.websocket.events import manager
 from app.services.packet_analyzer import PacketAnalyzer
 from app.services.detection_engine import detection_engine
 from app.services.education import educational_context
+from app.services.real_ap import RealAccessPoint, RealAccessPointError, LAB_GATEWAY
 
 
 LAB_BASELINE_BSSID = "02:00:00:00:10:01"
@@ -23,6 +24,7 @@ class AccessPointManager:
         self.mode = None
         self.session_id = None
         self.packet_analyzer = None
+        self.real_ap = None
         self.capture_status = "stopped"
         self.capture_error = None
 
@@ -53,14 +55,33 @@ class AccessPointManager:
 
         print(f"[APManager] Starting rogue AP on {interface} with SSID '{ssid}' (Mode: {mode})")
 
-        # Start live packet analysis
-        self.packet_analyzer = PacketAnalyzer(interface=self.interface, event_callback=self._handle_live_event)
+        # REAL_AP stands up a genuine isolated hostapd+dnsmasq access point for
+        # an authorized test device to join. Falls back to the UI/simulation when
+        # the hardware/privileges are unavailable.
+        real_ap_active = False
+        if mode == "REAL_AP":
+            real_ap_active = self._start_real_ap(ssid, interface)
+
+        # WIFI_MONITOR captures real 802.11 management frames (beacons, probes,
+        # deauth) from a monitor-mode interface; other modes do L3 capture.
+        monitor = mode == "WIFI_MONITOR"
+
+        # Start live packet analysis. In REAL_AP mode this sniffs the connected
+        # test device's real DHCP/DNS/HTTP/TLS traffic on the AP interface.
+        self.packet_analyzer = PacketAnalyzer(
+            interface=self.interface,
+            event_callback=self._handle_live_event,
+            monitor=monitor,
+        )
         self.packet_analyzer.start()
         self.capture_status = "running"
 
-        # Start Evil Twin simulation thread (for mock detection and captive portal logic)
-        self._thread = threading.Thread(target=self._simulate_evil_twin_lifecycle, daemon=True)
-        self._thread.start()
+        # Start Evil Twin simulation thread (for mock detection and captive portal logic).
+        # Used by NETWORK_LAB/EVIL_TWIN. Skipped for WIFI_MONITOR (real frames) and
+        # for REAL_AP (real access point already running).
+        if mode in ("NETWORK_LAB", "EVIL_TWIN"):
+            self._thread = threading.Thread(target=self._simulate_evil_twin_lifecycle, daemon=True)
+            self._thread.start()
 
     def stop(self):
         if not self._is_running:
@@ -71,6 +92,12 @@ class AccessPointManager:
         
         if self.packet_analyzer:
             self.packet_analyzer.stop()
+        if self.real_ap:
+            try:
+                self.real_ap.stop()
+            except Exception as exc:
+                print(f"[APManager] Error stopping real AP: {exc}")
+            self.real_ap = None
         detection_engine.stop()
         self.capture_status = "stopped"
         self.capture_error = None
@@ -100,6 +127,46 @@ class AccessPointManager:
             return db.query(Device).filter(Device.session_id == self.session_id).count()
         finally:
             db.close()
+
+    def _start_real_ap(self, ssid: str, interface: str) -> bool:
+        """Bring up a real isolated AP. Returns True on success, False if it
+        gracefully fell back (missing hardware/privileges). Never raises."""
+        if not RealAccessPoint.is_supported():
+            missing = "; ".join(RealAccessPoint.unmet_requirements())
+            msg = (
+                f"Real AP unavailable: {missing}. "
+                f"Showing the lab interface without a live access point."
+            )
+            self.capture_error = msg
+            self._emit_alert("INFO", "real_ap_unavailable", msg)
+            return False
+
+        try:
+            self.real_ap = RealAccessPoint(interface=interface, ssid=ssid)
+            self.real_ap.start()
+            # Record the real AP as an observed access point so the rest of the
+            # pipeline (events, education, detection) treats it like live data.
+            self._emit_event(
+                "access_point_observed",
+                {
+                    "ssid": ssid,
+                    "bssid": "real-ap",
+                    "gateway": LAB_GATEWAY,
+                    "security": "Open",
+                    "source": "real_isolated_ap",
+                },
+            )
+            return True
+        except (RealAccessPointError, Exception) as exc:
+            self.capture_error = f"Real AP failed to start: {exc}"
+            self._emit_alert("HIGH", "real_ap_error", str(exc))
+            if self.real_ap:
+                try:
+                    self.real_ap.stop()
+                except Exception:
+                    pass
+            self.real_ap = None
+            return False
 
     def _handle_live_event(self, event_type: str, metadata: dict):
         if not self._is_running:

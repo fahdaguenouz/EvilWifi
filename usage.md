@@ -160,3 +160,81 @@ When running inside VirtualBox:
 4. Ensure your user has permission to run `dumpcap`; on Debian-based systems this is commonly managed through the `wireshark` group, followed by signing out and back in.
 
 Do not select or capture from networks and devices outside your authorized isolated lab.
+
+---
+
+## Wi-Fi Monitor Mode (real 802.11 capture)
+
+The **Wi-Fi Monitor** lab mode captures real 802.11 *management frames* — beacons,
+probe requests/responses, authentication, association, and **deauthentication** —
+instead of only post-connection L3 traffic. This is what turns the "wireless"
+learning objectives (SSID/BSSID, probes, deauth, Evil Twin) from simulation into
+observation.
+
+### Prerequisites
+1. `tshark` must be installed (the capture backend). On Debian/Ubuntu:
+   ```bash
+   sudo apt install -y tshark aircrack-ng iw wireless-tools
+   # answer "Yes" to "allow non-superusers to capture"
+   sudo usermod -aG wireshark $USER   # then log out and back in
+   ```
+2. A wireless interface placed in **monitor mode**.
+
+### Enable monitor mode
+Use the helper script (needs root):
+```bash
+sudo scripts/monitor_mode.sh start wlp0s20f3 6     # start on channel 6
+sudo scripts/monitor_mode.sh status wlp0s20f3
+sudo scripts/monitor_mode.sh stop  wlp0s20f3       # restore normal Wi-Fi
+```
+
+> **Single-adapter warning:** switching your only Wi-Fi card to monitor mode
+> disconnects your internet for the session. A second (USB) adapter avoids this.
+> Monitor mode also sees only **one channel at a time** — set it to your target
+> access point's channel.
+
+### Run a session
+1. Open **Laboratory**, choose the **Wi-Fi Monitor** mode.
+2. Select the monitor-mode interface and confirm authorization.
+3. Start the session and watch real frames arrive in **Events**.
+4. Detections fire from live data: duplicate SSID (same name, multiple BSSIDs),
+   open/unencrypted networks, and deauthentication activity (a classic Evil Twin /
+   denial-of-service indicator that escalates to HIGH on a burst).
+
+Capture only in your own authorized, isolated lab.
+
+---
+
+## Real AP Mode (isolated hostapd + dnsmasq)
+
+The **Real AP** lab mode stands up a *genuine* Wi-Fi access point your own test
+device can join, so you can watch real DHCP, DNS, HTTP, and TLS behavior and the
+synthetic captive portal end to end.
+
+### Safety model
+- The network is **isolated by default**: no NAT, no internet uplink, no packet
+  forwarding. A joined device gets a lab IP (`10.10.10.0/24`), the lab gateway,
+  and the lab DNS resolver — nothing leaves the lab.
+- The captive portal only accepts the fixed synthetic `training-user` /
+  `training-token`. It never collects or stores real credentials, and the lab
+  performs **no exploitation** of connected devices.
+- Connect only a device you own and are authorized to test.
+
+### Prerequisites
+```bash
+sudo apt install -y hostapd dnsmasq
+```
+Plus an **AP-capable** wireless adapter (check `iw list` for `* AP` under
+"Supported interface modes") and the backend running **as root** (real AP needs
+privileged interface, hostapd, and dnsmasq control).
+
+### Run a session
+1. Open **Laboratory**, choose **Real AP**, select the AP-capable interface.
+2. Confirm authorization and start the session.
+3. On your test device, join the lab SSID and open any web page — the synthetic
+   captive portal appears.
+4. Watch real DHCP/DNS/HTTP events and detections stream into **Events** and
+   **Detections**.
+
+If hostapd/dnsmasq, an AP-capable adapter, or root privileges are missing, the
+lab still opens and reports a clear, non-fatal reason instead of a live AP.

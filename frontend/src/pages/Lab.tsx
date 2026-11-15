@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Play, Square, Network, Ghost, ExternalLink, Wifi } from 'lucide-react';
+import { Play, Square, Network, Ghost, ExternalLink, Wifi, Radio } from 'lucide-react';
 import { AuthorizationModal } from '../components/AuthorizationModal';
 import { getLabStatus, getNetworkInterfaces, startLab, stopLab } from '../services/api';
 
@@ -8,7 +8,7 @@ export default function Lab() {
   const [isRunning, setIsRunning] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [selectedMode, setSelectedMode] = useState<'NETWORK_LAB' | 'EVIL_TWIN'>('NETWORK_LAB');
+  const [selectedMode, setSelectedMode] = useState<'NETWORK_LAB' | 'EVIL_TWIN' | 'WIFI_MONITOR' | 'REAL_AP'>('NETWORK_LAB');
   const [ssid, setSsid] = useState('FahdWiFi-Lab');
   const [networkInterface, setNetworkInterface] = useState('');
   const [interfaces, setInterfaces] = useState<string[]>([]);
@@ -214,7 +214,47 @@ export default function Lab() {
                   <h3 className={`font-semibold mt-3 ${selectedMode === 'EVIL_TWIN' ? 'text-accent' : 'text-text'}`}>Evil Twin</h3>
                   <p className="text-xs text-muted mt-1">SSID impersonation and synthetic authentication demonstration.</p>
                 </button>
+
+                <button type="button"
+                  onClick={() => !isRunning && setSelectedMode('WIFI_MONITOR')}
+                  disabled={isRunning}
+                  className={`text-left p-4 rounded-xl border cursor-pointer transition-all ${
+                    selectedMode === 'WIFI_MONITOR'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border bg-background hover:border-muted'
+                  } ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <Radio className={selectedMode === 'WIFI_MONITOR' ? 'text-primary' : 'text-muted'} size={24} />
+                  <h3 className={`font-semibold mt-3 ${selectedMode === 'WIFI_MONITOR' ? 'text-primary' : 'text-text'}`}>Wi-Fi Monitor</h3>
+                  <p className="text-xs text-muted mt-1">Capture real 802.11 beacons, probes, and deauth frames. Needs a monitor-mode interface.</p>
+                </button>
+
+                <button type="button"
+                  onClick={() => !isRunning && setSelectedMode('REAL_AP')}
+                  disabled={isRunning}
+                  className={`text-left p-4 rounded-xl border cursor-pointer transition-all ${
+                    selectedMode === 'REAL_AP'
+                      ? 'border-accent bg-accent/10'
+                      : 'border-border bg-background hover:border-muted'
+                  } ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}
+                >
+                  <Wifi className={selectedMode === 'REAL_AP' ? 'text-accent' : 'text-muted'} size={24} />
+                  <h3 className={`font-semibold mt-3 ${selectedMode === 'REAL_AP' ? 'text-accent' : 'text-text'}`}>Real AP</h3>
+                  <p className="text-xs text-muted mt-1">Stand up a genuine isolated access point (hostapd+dnsmasq) for your own test device. No internet uplink.</p>
+                </button>
               </div>
+              {selectedMode === 'REAL_AP' && !isRunning && (
+                <p className="text-xs text-accent mt-3">
+                  Needs an AP-capable adapter, <code>hostapd</code> + <code>dnsmasq</code>, and the backend running as root.
+                  The network is isolated (no internet). Connect only your own authorized test device.
+                </p>
+              )}
+              {selectedMode === 'WIFI_MONITOR' && !isRunning && (
+                <p className="text-xs text-accent mt-3">
+                  Requires an interface in monitor mode (run <code>scripts/monitor_mode.sh start &lt;iface&gt;</code>).
+                  On a single-adapter machine, monitor mode disconnects your Wi-Fi for the session.
+                </p>
+              )}
             </div>
 
             <hr className="border-border" />

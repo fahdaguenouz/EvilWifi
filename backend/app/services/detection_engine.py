@@ -52,7 +52,26 @@ DETECTION_RULES = [
         "meaning": "Hosts, paths, and content may be visible or modified in transit.",
         "response": "Prefer HTTPS and do not send sensitive information over HTTP.",
     },
+    {
+        "id": "deauth_activity",
+        "title": "Deauthentication Activity",
+        "severity": "HIGH",
+        "signal": "Deauthentication frames were observed on the channel.",
+        "meaning": "Forged deauth frames are a classic Evil Twin and denial-of-service technique that pushes clients to reconnect.",
+        "response": "Treat bursts as a strong attack indicator and prefer networks with 802.11w (Protected Management Frames).",
+    },
+    {
+        "id": "open_network",
+        "title": "Open (Unencrypted) Network",
+        "severity": "LOW",
+        "signal": "A beacon advertises a network with no wireless encryption.",
+        "meaning": "Open networks give no link-layer protection, making interception and Evil Twin impersonation easier.",
+        "response": "Avoid sending sensitive traffic; rely on HTTPS/VPN and prefer WPA2/WPA3 networks.",
+    },
 ]
+
+# Number of deauthentication frames that escalates the finding to a likely flood.
+DEAUTH_FLOOD_THRESHOLD = 5
 
 
 @dataclass(frozen=True)
@@ -76,6 +95,7 @@ class DetectionEngine:
         self.expected_dns: str | None = None
         self._observed_bssids: dict[str, set[str]] = {}
         self._emitted_keys: set[str] = set()
+        self._deauth_count = 0
         self._lock = Lock()
 
     def start(
@@ -93,6 +113,7 @@ class DetectionEngine:
             self.expected_dns = expected_dns
             self._observed_bssids.clear()
             self._emitted_keys.clear()
+            self._deauth_count = 0
             self.is_active = True
 
     def stop(self):
@@ -100,6 +121,7 @@ class DetectionEngine:
             self.is_active = False
             self._observed_bssids.clear()
             self._emitted_keys.clear()
+            self._deauth_count = 0
 
     def analyze_event(self, event_type: str, metadata: dict[str, Any]) -> list[dict[str, str]]:
         with self._lock:
@@ -130,6 +152,8 @@ class DetectionEngine:
                 )
                 if finding:
                     findings.append(finding)
+            elif event_type == "deauth_frame":
+                findings.extend(self._analyze_deauth(metadata))
 
             return [finding.to_dict() for finding in findings]
 
@@ -142,6 +166,18 @@ class DetectionEngine:
         bssids = self._observed_bssids.setdefault(ssid, set())
         bssids.add(bssid)
         findings: list[DetectionFinding] = []
+
+        security = str(metadata.get("security", "")).lower()
+        if security == "open":
+            finding = self._once(
+                f"open_network:{bssid}",
+                "LOW",
+                "open_network",
+                f"SSID '{ssid}' (BSSID {bssid}) advertises an open, unencrypted network; "
+                f"traffic has no link-layer protection and the name is trivial to impersonate.",
+            )
+            if finding:
+                findings.append(finding)
 
         if self.expected_bssid and bssid != self.expected_bssid:
             finding = self._once(
@@ -189,6 +225,35 @@ class DetectionEngine:
             )
             if finding:
                 findings.append(finding)
+
+        return findings
+
+    def _analyze_deauth(self, metadata: dict[str, Any]) -> list[DetectionFinding]:
+        self._deauth_count += 1
+        findings: list[DetectionFinding] = []
+        target = metadata.get("to_mac") or "a client"
+        bssid = metadata.get("bssid") or "an access point"
+
+        first = self._once(
+            "deauth_observed",
+            "MEDIUM",
+            "deauth_activity",
+            f"A deauthentication frame was observed (from {bssid} toward {target}). "
+            f"Deauth frames can forcibly disconnect clients and are often forged.",
+        )
+        if first:
+            findings.append(first)
+
+        if self._deauth_count >= DEAUTH_FLOOD_THRESHOLD:
+            flood = self._once(
+                "deauth_flood",
+                "HIGH",
+                "deauth_activity",
+                f"{self._deauth_count} deauthentication frames were observed, consistent with a deauth flood "
+                f"used to deny service or push clients onto an Evil Twin. Treat this as a strong attack indicator.",
+            )
+            if flood:
+                findings.append(flood)
 
         return findings
 

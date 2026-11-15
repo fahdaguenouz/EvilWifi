@@ -11,6 +11,8 @@ class LabStatus(str, Enum):
 class LabMode(str, Enum):
     NETWORK_LAB = "NETWORK_LAB"
     EVIL_TWIN = "EVIL_TWIN"
+    WIFI_MONITOR = "WIFI_MONITOR"
+    REAL_AP = "REAL_AP"
 
 class LabManager:
     def __init__(self):
