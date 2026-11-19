@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard';
 import Lab from './pages/Lab';
 import Devices from './pages/Devices';
 import Events from './pages/Events';
+import TrafficViewer from './pages/TrafficViewer';
 import Settings from './pages/Settings';
 import Portal from './pages/Portal';
 import Analysis from './pages/Analysis';
@@ -20,6 +21,7 @@ function App() {
           <Route path="lab" element={<Lab />} />
           <Route path="devices" element={<Devices />} />
           <Route path="events" element={<Events />} />
+          <Route path="traffic" element={<TrafficViewer />} />
           <Route path="analysis" element={<Analysis />} />
           <Route path="detections" element={<Detections />} />
           <Route path="learn" element={<Learn />} />
