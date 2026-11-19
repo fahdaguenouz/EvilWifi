@@ -1385,6 +1385,37 @@ This makes the networking concepts much easier to teach.
 
 ---
 
+# 🌐 Network Viewer
+
+The Network Viewer turns captured packet events into a readable dashboard
+so learners can see what traffic is moving across the lab network.
+
+## What it shows
+
+- **Destinations**: domains, hosts, and IPs that devices are contacting.
+- **Web apps searched**: domains from DNS queries, HTTP hosts, and TLS SNI.
+- **Data transfer**: byte counts per flow and total bytes observed.
+- **Encryption visibility**: which flows are encrypted (TLS/HTTPS) vs visible
+  in plaintext (HTTP/DNS).
+- **Protocol breakdown**: DNS, DHCP, HTTP, TLS, ARP counts.
+- **Live traffic flows**: real-time table of recent captured traffic.
+
+## How to use
+
+1. Start a lab session from the Laboratory page.
+2. Generate authorized test traffic (DNS lookups, web requests) from a test
+   device.
+3. Open the **Network Viewer** page at `http://localhost:5173/traffic`.
+4. Watch flows populate in real time via WebSocket.
+
+## Safety
+
+The viewer shows only metadata — destinations, protocols, and byte counts.
+It never displays plaintext HTTP bodies, passwords, or captured payloads.
+Real credentials are never captured or stored anywhere in EvilWifi Lab.
+
+---
+
 # 🕵️ Detection Engine
 
 The defensive component is one of the most important parts of the project.
