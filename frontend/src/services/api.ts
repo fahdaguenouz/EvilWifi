@@ -88,3 +88,8 @@ export const getLatestSessionReview = async () => {
   const response = await api.get('/reports/latest');
   return response.data;
 };
+
+export const getTrafficSummary = async (limit = 500) => {
+  const response = await api.get(`/traffic/summary?limit=${limit}`);
+  return response.data;
+};
