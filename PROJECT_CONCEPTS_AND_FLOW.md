@@ -241,6 +241,8 @@ A high score with limited confidence means “few indicators in incomplete evide
 - **Events**: live/historical timeline and four-part explanations.
 - **Packet Lab**: protocol counts, encryption visibility, and packet lessons.
 - **Detections**: rule catalog and observed indicators.
+- **Network Viewer**: live traffic flows, destinations, protocol breakdown,
+  and plaintext vs encrypted visibility.
 - **Learn**: four modules, knowledge checks, and local progress.
 - **Session Review**: end-to-end evidence summary and safe next steps.
 - **Settings**: safety boundaries and supporting information.
@@ -256,6 +258,7 @@ A high score with limited confidence means “few indicators in incomplete evide
 - `/api/alerts/*` — defensive findings and rule definitions.
 - `/api/education/*` — event explanations and learning modules.
 - `/api/portal/*` — safe training portal state and synthetic entry.
+- `/api/traffic/summary` — aggregated traffic flows for the Network Viewer.
 - `/api/reports/latest` — latest end-of-lab review.
 - `/api/reports/{session_id}` — review for a selected session.
 - `/ws/events` — live events and alerts.
