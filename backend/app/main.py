@@ -22,9 +22,11 @@ app = FastAPI(
 )
 
 # CORS middleware to allow frontend to connect
+# Origins are controlled via the CORS_ORIGINS environment variable (comma-separated).
+# Defaults to the local Vite dev server. Do not use "*" in production.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, restrict this
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

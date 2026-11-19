@@ -64,6 +64,18 @@ export default function Detections() {
 
       {error && <div role="alert" className="rounded-xl border border-accent/40 bg-accent/10 p-4 text-accent">{error}</div>}
 
+      <div role="alert" className="rounded-xl border border-warning/40 bg-warning/10 p-4 text-warning flex items-start gap-3">
+        <AlertTriangle className="flex-shrink-0 mt-0.5" />
+        <div>
+          <p className="font-semibold text-warning">Detections are indicators, not verdicts.</p>
+          <p className="text-sm text-warning/90 mt-1">
+            A HIGH alert means a condition matched a defensive rule — it does not prove an attack occurred.
+            Always compare the signal with your known lab baseline (SSID, BSSID, gateway, DNS, portal behavior)
+            before deciding what it means.
+          </p>
+        </div>
+      </div>
+
       <section className="grid md:grid-cols-3 gap-3" aria-label="Detection workflow">
         <div className="bg-surface border border-border rounded-xl p-5"><Radar className="text-primary" /><h2 className="font-bold text-text mt-3">1. Observe a signal</h2><p className="text-sm text-muted mt-1">The engine compares packets and network identity with the expected lab baseline.</p></div>
         <div className="bg-surface border border-border rounded-xl p-5"><Eye className="text-warning" /><h2 className="font-bold text-text mt-3">2. Add context</h2><p className="text-sm text-muted mt-1">Duplicate SSIDs can be legitimate. Look at BSSID, gateway, DNS, and portal behavior together.</p></div>

@@ -2,58 +2,62 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Play, Square, Network, Ghost, ExternalLink, Wifi, Radio } from 'lucide-react';
 import { AuthorizationModal } from '../components/AuthorizationModal';
-import { getLabStatus, getNetworkInterfaces, startLab, stopLab } from '../services/api';
+import { useLab } from '../hooks/useLab';
+
+type LabMode = 'NETWORK_LAB' | 'EVIL_TWIN' | 'WIFI_MONITOR' | 'REAL_AP';
 
 export default function Lab() {
-  const [isRunning, setIsRunning] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [selectedMode, setSelectedMode] = useState<'NETWORK_LAB' | 'EVIL_TWIN' | 'WIFI_MONITOR' | 'REAL_AP'>('NETWORK_LAB');
+  const [selectedMode, setSelectedMode] = useState<LabMode>('NETWORK_LAB');
   const [ssid, setSsid] = useState('FahdWiFi-Lab');
   const [networkInterface, setNetworkInterface] = useState('');
-  const [interfaces, setInterfaces] = useState<string[]>([]);
   const [error, setError] = useState('');
-  const [wirelessReady, setWirelessReady] = useState(false);
-  const [usbWirelessInterfaces, setUsbWirelessInterfaces] = useState<string[]>([]);
-  const [readinessIssues, setReadinessIssues] = useState<string[]>([]);
   const [captureStatus, setCaptureStatus] = useState<'stopped' | 'starting' | 'running' | 'error'>('stopped');
   const [captureError, setCaptureError] = useState<string | null>(null);
 
-  // On mount, check if already running
-  useEffect(() => {
-    Promise.all([getLabStatus(), getNetworkInterfaces()]).then(([lab, interfaceData]) => {
-      setIsRunning(lab.status === 'running');
-      if (lab.mode) setSelectedMode(lab.mode);
-      if (lab.ssid) setSsid(lab.ssid);
-      setCaptureStatus(lab.capture_status || 'stopped');
-      setCaptureError(lab.capture_error || null);
-      const detected = interfaceData.interfaces as string[];
-      setInterfaces(detected);
-      setNetworkInterface(lab.interface || interfaceData.recommended || '');
-      setWirelessReady(Boolean(interfaceData.wireless_ready));
-      setUsbWirelessInterfaces(interfaceData.usb_wireless_interfaces || []);
-      setReadinessIssues(interfaceData.issues || []);
-    }).catch(() => setError('Unable to load laboratory configuration. Check that the backend is running.'));
-  }, []);
+  const {
+    lab,
+    interfaces,
+    recommendedInterface,
+    wirelessReady,
+    usbWirelessInterfaces,
+    readinessIssues,
+    start,
+    stop,
+    refresh,
+    refreshInterfaces,
+  } = useLab();
 
+  const isRunning = lab.status === 'running';
+
+  // Sync local UI state from the hook-provided lab status
+  useEffect(() => {
+    if (lab.mode) setSelectedMode(lab.mode as LabMode);
+    if (lab.ssid) setSsid(lab.ssid);
+    setCaptureStatus(lab.capture_status || 'stopped');
+    setCaptureError(lab.capture_error || null);
+    setNetworkInterface(lab.interface || recommendedInterface || '');
+  }, [lab, recommendedInterface]);
+
+  // Poll capture status while the lab is running
   useEffect(() => {
     if (!isRunning) return;
     const interval = window.setInterval(() => {
-      getLabStatus().then((lab) => {
-        setCaptureStatus(lab.capture_status || 'running');
-        setCaptureError(lab.capture_error || null);
+      refresh().then((updated) => {
+        setCaptureStatus(updated.capture_status || 'running');
+        setCaptureError(updated.capture_error || null);
       }).catch(() => {
         // The main error state handles explicit start/stop failures.
       });
     }, 3000);
     return () => window.clearInterval(interval);
-  }, [isRunning]);
+  }, [isRunning, refresh]);
 
   const startConfiguredLab = async () => {
     setError('');
     try {
-      const result = await startLab(selectedMode, true, ssid.trim(), networkInterface);
-      setIsRunning(true);
+      const result = await start(selectedMode, ssid.trim(), networkInterface);
       setCaptureStatus(result.capture_status || 'running');
       setCaptureError(result.capture_error || null);
     } catch (requestError) {
@@ -75,8 +79,7 @@ export default function Lab() {
 
   const handleStopLab = async () => {
     try {
-      const result = await stopLab();
-      setIsRunning(false);
+      const result = await stop();
       setCaptureStatus(result.capture_status || 'stopped');
       setCaptureError(null);
     } catch {
@@ -102,7 +105,7 @@ export default function Lab() {
       <div className="space-y-6">
         <header>
           <h1 className="text-3xl font-bold text-text">Laboratory Control</h1>
-          <p className="text-muted mt-2">Manage the rogue access point and simulation settings.</p>
+          <p className="text-muted mt-2">Manage the access point and simulation settings.</p>
         </header>
 
         <section className="grid sm:grid-cols-2 xl:grid-cols-4 gap-3 max-w-5xl" aria-label="Laboratory workflow">
@@ -245,8 +248,8 @@ export default function Lab() {
               </div>
               {selectedMode === 'REAL_AP' && !isRunning && (
                 <p className="text-xs text-accent mt-3">
-                  Needs an AP-capable adapter, <code>hostapd</code> + <code>dnsmasq</code>, and the backend running as root.
-                  The network is isolated (no internet). Connect only your own authorized test device.
+                  Needs an AP-capable adapter (<code>iw list</code> shows <code>* AP</code>), <code>hostapd</code> + <code>dnsmasq</code>,
+                  and the backend running as root. The network is isolated (no internet). Connect only your own authorized test device.
                 </p>
               )}
               {selectedMode === 'WIFI_MONITOR' && !isRunning && (
